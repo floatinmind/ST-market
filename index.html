@@ -3,33 +3,44 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>寶箱行情簿</title>
+<title>市場行情簿</title>
 <style>
 :root{
   --bg:#17130e; --panel:#221c15; --panel2:#2b241b; --line:#4a3d2c;
   --text:#efe4cf; --muted:#a8987c; --accent:#d9a441;
   --gold:#e8b949; --gem:#5ec8e5; --buy:#6fbf73; --sell:#e07a5f; --danger:#c85a4a;
+  --q-normal:#c9bfae; --q-superior:#7fd08a; --q-flawless:#5ec8e5; --q-epic:#b58cf0; --q-legendary:#f0a040;
 }
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,"Noto Sans TC","PingFang TC","Microsoft JhengHei",sans-serif;font-size:15px;line-height:1.45}
 .wrap{max-width:960px;margin:0 auto;padding:16px}
-header{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin:6px 0 16px;border-bottom:1px solid var(--line);padding-bottom:10px}
+header{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin:6px 0 12px}
 header h1{margin:0;font-size:22px;color:var(--accent);letter-spacing:1px}
 header span{color:var(--muted);font-size:13px}
+.tabs{display:flex;gap:4px;border-bottom:1px solid var(--line);margin-bottom:14px;position:sticky;top:0;background:var(--bg);z-index:5;padding-top:4px}
+.tabs button{flex:1;background:none;border:0;border-bottom:3px solid transparent;color:var(--muted);padding:10px 4px;font-size:15px;font-weight:600;cursor:pointer;font-family:inherit}
+.tabs button.on{color:var(--accent);border-bottom-color:var(--accent)}
 .card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px;margin-bottom:14px}
 .card h2{margin:0 0 12px;font-size:16px;color:var(--accent);display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
 .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px}
-label.f{display:flex;flex-direction:column;gap:4px;font-size:13px;color:var(--muted)}
+.f{display:flex;flex-direction:column;gap:4px;font-size:13px;color:var(--muted)}
+.full{grid-column:1/-1}
 select,input{background:var(--panel2);color:var(--text);border:1px solid var(--line);border-radius:7px;padding:9px 10px;font-size:15px;width:100%;font-family:inherit}
 select:focus,input:focus{outline:2px solid var(--accent);outline-offset:-1px}
 .seg{display:flex;border:1px solid var(--line);border-radius:7px;overflow:hidden}
-.seg button{flex:1;background:var(--panel2);color:var(--muted);border:0;padding:9px 6px;font-size:14px;cursor:pointer;font-family:inherit}
+.seg button{flex:1;background:var(--panel2);color:var(--muted);border:0;padding:9px 4px;font-size:14px;cursor:pointer;font-family:inherit}
 .seg button+button{border-left:1px solid var(--line)}
 .seg button.on[data-v=buy]{background:var(--buy);color:#10210f;font-weight:700}
 .seg button.on[data-v=sell]{background:var(--sell);color:#2a0f08;font-weight:700}
 .seg button.on[data-v=gold]{background:var(--gold);color:#2a1e05;font-weight:700}
 .seg button.on[data-v=gem]{background:var(--gem);color:#06222b;font-weight:700}
-.seg button.on[data-v=all]{background:var(--accent);color:#2a1e05;font-weight:700}
+.seg.q button{font-size:12px;padding:9px 2px}
+.seg.q button.on{color:#1a1510;font-weight:700}
+.seg.q button.on[data-v=normal]{background:var(--q-normal)}
+.seg.q button.on[data-v=superior]{background:var(--q-superior)}
+.seg.q button.on[data-v=flawless]{background:var(--q-flawless)}
+.seg.q button.on[data-v=epic]{background:var(--q-epic)}
+.seg.q button.on[data-v=legendary]{background:var(--q-legendary)}
 .row{display:flex;gap:8px}
 .row>*{flex:1}
 .btn{background:var(--accent);color:#2a1e05;border:0;border-radius:7px;padding:10px 16px;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit}
@@ -42,9 +53,12 @@ select:focus,input:focus{outline:2px solid var(--accent);outline-offset:-1px}
 @media(max-width:520px){.stats{grid-template-columns:1fr}}
 .stat{background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:10px 12px}
 .stat .t{font-size:13px;font-weight:700;margin-bottom:6px;display:flex;gap:6px;align-items:center}
-.tag{font-size:11px;padding:1px 7px;border-radius:10px;font-weight:700}
+.tag{font-size:11px;padding:1px 7px;border-radius:10px;font-weight:700;white-space:nowrap}
 .tag.buy{background:var(--buy);color:#10210f}.tag.sell{background:var(--sell);color:#2a0f08}
 .tag.gold{background:var(--gold);color:#2a1e05}.tag.gem{background:var(--gem);color:#06222b}
+.tag.q-normal{background:var(--q-normal);color:#1a1510}.tag.q-superior{background:var(--q-superior);color:#1a1510}
+.tag.q-flawless{background:var(--q-flawless);color:#1a1510}.tag.q-epic{background:var(--q-epic);color:#1a1510}
+.tag.q-legendary{background:var(--q-legendary);color:#1a1510}
 .kv{display:flex;justify-content:space-between;gap:8px;font-size:13px;padding:2px 0}
 .kv b{font-variant-numeric:tabular-nums}
 .kv .when{color:var(--muted);font-size:12px}
@@ -52,83 +66,130 @@ select:focus,input:focus{outline:2px solid var(--accent);outline-offset:-1px}
 .empty{color:var(--muted);font-size:13px}
 table{width:100%;border-collapse:collapse;font-size:13px}
 th,td{padding:7px 6px;border-bottom:1px solid var(--line);text-align:right;vertical-align:top;font-variant-numeric:tabular-nums}
-th{color:var(--muted);font-weight:600;position:sticky;top:0;background:var(--panel)}
+th{color:var(--muted);font-weight:600;background:var(--panel)}
 th:first-child,td:first-child{text-align:left}
 td .when{display:block;color:var(--muted);font-size:11px}
+td .sub{display:block;color:var(--muted);font-size:11px}
 .tablewrap{overflow-x:auto}
 tr.click{cursor:pointer}tr.click:hover{background:var(--panel2)}
 .log{list-style:none;margin:0;padding:0}
-.log li{display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--line);font-size:13px;flex-wrap:wrap}
+.log li{display:flex;align-items:center;gap:6px;padding:8px 0;border-bottom:1px solid var(--line);font-size:13px;flex-wrap:wrap}
 .log .p{margin-left:auto;font-weight:700;font-variant-numeric:tabular-nums}
-.log .when{color:var(--muted);font-size:12px;min-width:120px}
+.log .when{color:var(--muted);font-size:12px;min-width:112px}
 .x{background:none;border:0;color:var(--muted);cursor:pointer;font-size:16px;padding:0 4px}
 .x:hover{color:var(--danger)}
+.star{background:none;border:1px solid var(--line);border-radius:7px;color:var(--muted);cursor:pointer;font-size:18px;padding:4px 10px;line-height:1;flex:0 0 auto}
+.star.on{color:var(--gold);border-color:var(--gold)}
 svg text{fill:var(--muted);font-size:11px}
 .foot{display:flex;gap:8px;flex-wrap:wrap}
+.picker{position:relative}
+.pklist{position:absolute;left:0;right:0;top:100%;margin-top:4px;background:var(--panel2);border:1px solid var(--line);border-radius:8px;max-height:320px;overflow-y:auto;z-index:20;display:none;box-shadow:0 8px 24px rgba(0,0,0,.5)}
+.pklist.open{display:block}
+.pklist div{padding:8px 10px;cursor:pointer;display:flex;justify-content:space-between;gap:8px;font-size:14px;color:var(--text)}
+.pklist div:hover,.pklist div.act{background:var(--line)}
+.pklist small{color:var(--muted);white-space:nowrap}
+.pklist .none{color:var(--muted);cursor:default}
+.selname{font-size:15px;color:var(--text);font-weight:700}
+.chk{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--muted);cursor:pointer}
+.chk input{width:auto}
+.hide{display:none!important}
 </style>
 </head>
 <body>
 <div class="wrap">
 <header>
-  <h1>寶箱行情簿</h1>
-  <span>Chest Market Ledger · 記錄市場寶箱買賣價格</span>
+  <h1>市場行情簿</h1>
+  <span>Shop Titans Market Ledger</span>
 </header>
+
+<nav class="tabs" id="tabs">
+  <button data-t="chest" class="on">寶箱</button>
+  <button data-t="ench">元素・靈魂</button>
+  <button data-t="equip">裝備</button>
+</nav>
 
 <!-- 新增紀錄 -->
 <div class="card">
   <h2>新增紀錄</h2>
   <div class="grid">
-    <label class="f">交易方向
+    <!-- 物品選擇：依分頁切換 -->
+    <div class="f full" data-for="chest">寶箱種類<select id="selChest"></select></div>
+    <div class="f full hide" data-for="ench">元素／靈魂
+      <div class="row"><select id="selEnch"></select><button class="star" id="starEnch" title="加入關注">☆</button></div>
+    </div>
+    <div class="f full hide" data-for="equip">裝備（輸入名稱搜尋）
+      <div class="row">
+        <div class="picker" style="flex:1">
+          <input id="pk" placeholder="例：platinum、sword…" autocomplete="off">
+          <div class="pklist" id="pkList"></div>
+        </div>
+        <button class="star" id="starEquip" title="加入關注">☆</button>
+      </div>
+      <div class="row" style="margin-top:6px">
+        <select id="fType"><option value="">全部類型</option></select>
+        <select id="fTier"><option value="">全部階級</option></select>
+      </div>
+    </div>
+    <div class="f full hide" id="qWrap">品質
+      <div class="seg q" id="fQ">
+        <button data-v="normal" class="on">Normal</button><button data-v="superior">Superior</button><button data-v="flawless">Flawless</button><button data-v="epic">Epic</button><button data-v="legendary">Legendary</button>
+      </div>
+    </div>
+    <div class="f">交易方向
       <div class="seg" id="fSide"><button data-v="buy" class="on">買入</button><button data-v="sell">賣出</button></div>
-    </label>
-    <label class="f">寶箱種類<select id="fChest"></select></label>
-    <label class="f">幣別
+    </div>
+    <div class="f">幣別
       <div class="seg" id="fCur"><button data-v="gold" class="on">Gold</button><button data-v="gem">Gem</button></div>
-    </label>
-    <label class="f">價格
+    </div>
+    <div class="f">價格
       <div class="row"><input id="fPrice" inputmode="decimal" placeholder="例：1.25" style="flex:2"><select id="fUnit" style="flex:1">
         <option value="1">—</option><option value="1e3">k</option><option value="1e6" selected>m</option><option value="1e9">g</option><option value="1e12">T</option>
       </select></div>
-    </label>
-    <label class="f">日期與時間（小時）
+    </div>
+    <div class="f">日期與時間（小時）
       <div class="row"><input type="date" id="fDate"><select id="fHour"></select></div>
-    </label>
+    </div>
   </div>
   <div class="row" style="margin-top:12px;flex-wrap:wrap">
     <button class="btn" id="addBtn" style="flex:0 0 auto">記錄</button>
     <button class="btn ghost small" id="nowBtn" style="flex:0 0 auto">時間設為現在</button>
   </div>
-  <div class="hint">輸入數字後在右邊選單位：k = 千、m = 百萬、g = 十億、T = 兆（例如 1.25 + m = 1,250,000）。選「—」代表不加單位。</div>
+  <div class="hint" id="unitHint">輸入數字後在右邊選單位：k = 千、m = 百萬、g = 十億、T = 兆（例如 1.25 + m = 1,250,000）。選「—」代表不加單位。</div>
   <div class="msg" id="msg"></div>
 </div>
 
-<!-- 單一寶箱 -->
+<!-- 行情 -->
 <div class="card">
-  <h2>寶箱行情 <select id="vChest" style="width:auto;min-width:200px"></select></h2>
-  <div class="stats" id="stats"></div>
-  <div style="margin-top:14px">
-    <div class="row" style="flex-wrap:wrap;gap:8px;margin-bottom:8px">
-      <div class="seg" id="cSide" style="flex:1;min-width:160px"><button data-v="buy" class="on">買入</button><button data-v="sell">賣出</button></div>
-      <div class="seg" id="cCur" style="flex:1;min-width:160px"><button data-v="gold" class="on">Gold</button><button data-v="gem">Gem</button></div>
+  <h2><span id="vTitle">行情</span></h2>
+  <div id="vBody">
+    <div class="stats" id="stats"></div>
+    <div style="margin-top:14px">
+      <div class="row" style="flex-wrap:wrap;gap:8px;margin-bottom:8px">
+        <div class="seg" id="cSide" style="flex:1;min-width:150px"><button data-v="buy" class="on">買入</button><button data-v="sell">賣出</button></div>
+        <div class="seg" id="cCur" style="flex:1;min-width:150px"><button data-v="gold" class="on">Gold</button><button data-v="gem">Gem</button></div>
+      </div>
+      <div id="chart"></div>
     </div>
-    <div id="chart"></div>
   </div>
 </div>
 
 <!-- 總覽 -->
 <div class="card">
-  <h2>全部寶箱總覽</h2>
+  <h2 id="oTitle">總覽</h2>
   <div class="row" style="flex-wrap:wrap;gap:8px;margin-bottom:10px">
-    <div class="seg" id="oSide" style="flex:1;min-width:160px"><button data-v="buy" class="on">買入</button><button data-v="sell">賣出</button></div>
-    <div class="seg" id="oCur" style="flex:1;min-width:160px"><button data-v="gold" class="on">Gold</button><button data-v="gem">Gem</button></div>
+    <div class="seg" id="oSide" style="flex:1;min-width:150px"><button data-v="buy" class="on">買入</button><button data-v="sell">賣出</button></div>
+    <div class="seg" id="oCur" style="flex:1;min-width:150px"><button data-v="gold" class="on">Gold</button><button data-v="gem">Gem</button></div>
   </div>
+  <label class="chk hide" id="oStarWrap" style="margin-bottom:8px"><input type="checkbox" id="oStar"> 只看關注</label>
   <div class="tablewrap"><table id="overview"></table></div>
-  <div class="hint">點一列可切換到該寶箱的行情。</div>
+  <div class="hint" id="oHint"></div>
 </div>
 
 <!-- 紀錄 -->
 <div class="card">
-  <h2>歷史紀錄 <select id="lChest" style="width:auto;min-width:180px"></select></h2>
+  <h2>歷史紀錄
+    <select id="lFilter" style="width:auto;min-width:160px"><option value="all">這個分頁全部</option><option value="sel">只看目前選擇</option></select>
+  </h2>
   <ul class="log" id="log"></ul>
 </div>
 
@@ -141,35 +202,50 @@ svg text{fill:var(--muted);font-size:11px}
     <input type="file" id="impFile" accept=".json,application/json" hidden>
     <button class="btn danger small" id="clrBtn">清除全部紀錄</button>
   </div>
-  <div class="hint">紀錄存在這個瀏覽器裡（localStorage）。換手機、換瀏覽器或清除網站資料前，先匯出備份。</div>
+  <div class="hint">三個分頁的紀錄和關注清單都存在這個瀏覽器裡（localStorage），備份會一次匯出全部。換手機、換瀏覽器或清除網站資料前，先匯出備份。</div>
 </div>
 </div>
 
 <script>
-// 寶箱清單：取自 Shop Titans 官方試算表 Full Moon Fusions 頁
+// 物品清單：取自 Shop Titans 官方試算表 v1.0.9.1332（Blueprints、Full Moon Fusions 頁）
+const DATA = {"equip":[["Squire Sword","Sword",1],["Arming Sword","Sword",2],["Gladius","Sword",3],["Arboreal Blade","Sword",3],["Zweihander","Sword",3],["Cutlass","Sword",4],["Imbued Blade","Sword",4],["Espada","Sword",5],["Hero's Sword","Sword",5],["Chocolicious Blade","Sword",5],["Katana","Sword",6],["Serrated Cinquedea","Sword",6],["Ruler of Rulers","Sword",6],["Regal Blade","Sword",7],["Chronos Runeblade","Sword",7],["Bitterblack Blade","Sword",7],["Hackrazor Edge","Sword",7],["Celesteel Blade","Sword",8],["Damocles","Sword",8],["Luxurious Macuahuitl","Sword",8],["Crystalline Rapier","Sword",8],["Mythril Edge","Sword",9],["Seafarer Blade","Sword",9],["Gentleman Blade","Sword",9],["Oversized Cleaver","Sword",10],["Caladbolg","Sword",10],["Dragon Dao","Sword",10],["Tiger Blade","Sword",10],["Vorpal Sword","Sword",11],["Elegant Rapier","Sword",11],["Tsukuyomi","Sword",11],["Excalibur","Sword",12],["Titan Sword","Sword",12],["Opulent Brand","Sword",12],["Épée d'Artagnan","Sword",12],["Thorn of Scorn","Sword",12],["Djinn Pyre","Sword",13],["Plasma Saber","Sword",13],["T-Rex Buster","Sword",13],["Zeus Thunderblade","Sword",13],["Durandal","Sword",14],["Platinum Greatsword","Sword",14],["Materia Blade","Sword",14],["Twin Fangs","Sword",14],["Kiku-Ichimonji","Sword",14],["Siren's Song","Sword",15],["Succubus Martyr","Sword",15],["Sword of the Sightless","Sword",15],["Twice Cursed","Sword",15],["Plutonium Blade","Sword",16],["Wolfbane Scissors","Sword",16],["Unearthed Blade","Sword",16],["Eclipsed Hookblade","Sword",16],["Wood Axe","Axe",1],["Hatchet","Axe",2],["Iron Chopper","Axe",3],["Explorer's Axe","Axe",3],["Bardiche","Axe",4],["Molten Voulge","Axe",4],["Dismantler's Pickaxe","Axe",4],["Tomahawk","Axe",5],["Companion Axe","Axe",5],["Cold Iron Axe","Axe",5],["Battleaxe","Axe",6],["Raptor Reaper","Axe",6],["Mesmerite Chopper","Axe",6],["Dwarven Greataxe","Axe",7],["Stonesplitter","Axe",7],["Krooked Handaxe","Axe",7],["Raider Axe","Axe",8],["Qian Chopper","Axe",8],["Pickaxe of Greed","Axe",8],["Executioner","Axe",9],["Purgatory","Axe",9],["Axe of The Fifth","Axe",9],["Copper Bite","Axe",9],["Eclipsis","Axe",10],["Terra Tyrannis","Axe",10],["Opulent Grandaxe","Axe",10],["Kodiak Kleaver","Axe",10],["Manticore Slayer","Axe",11],["Beeswaxe","Axe",11],["Shroom Doom","Axe",11],["Jötunnbane","Axe",11],["Archfiend Dominion","Axe",11],["Crescent of Conquest","Axe",12],["Onyx King Axe","Axe",12],["Lover's Quarrel","Axe",12],["Apex Goraxe","Axe",12],["Edge Eternal","Axe",13],["Moltin' Crabcracker","Axe",13],["Platinum War Axe","Axe",13],["Nilean Dawn","Axe",13],["Axe of Froth","Axe",14],["Axe of Wroth","Axe",14],["Judgment","Axe",14],["Judgment Forgotten","Axe",14],["Tenoch Tyrant","Axe",15],["Bogbound Terror","Axe",15],["Scrap Chak-a-Chop","Axe",15],["Sundera Cataclys","Axe",15],["Synthetic Armament","Axe",16],["Axe of Sept","Axe",16],["Shiv","Dagger",1],["Ice Pick","Dagger",1],["Swift Blade","Dagger",2],["Kunai","Dagger",2],["Stealth Knife","Dagger",3],["Imbued Dagger","Dagger",3],["Balisong","Dagger",4],["Erudite Vector","Dagger",4],["Ritual Dagger","Dagger",5],["Sokka's Boomerang","Dagger",5],["Assassin Tanto","Dagger",5],["Kingsguard","Dagger",6],["Cloudwalker Chakram","Dagger",6],["Iced FlavorPop","Dagger",6],["Bravestone's Knife","Dagger",6],["Fishmonger","Dagger",7],["Juniper's Trowel","Dagger",7],["Fountain Pen","Dagger",7],["Troll Tooth","Dagger",8],["Levia Fang","Dagger",8],["Cookie Katar","Dagger",8],["Misericordia","Dagger",9],["Sultan Dagger","Dagger",9],["Luxurious Poignard","Dagger",9],["Ceremonial Katar","Dagger",10],["Nightmare Fellblade","Dagger",10],["Swan's Edge","Dagger",10],["Lucky Strike","Dagger",10],["Heartseeker","Dagger",11],["Last Breath","Dagger",11],["Nightwing Bolt","Dagger",11],["Kyoshi Warrior Fan","Dagger",11],["Wiccan Dagger","Dagger",11],["Sixth Sin","Dagger",12],["Opulent Tecpatl","Dagger",12],["Celesteel Knuckles","Dagger",12],["Empress War Fan","Dagger",12],["Nocturne","Dagger",13],["Ranger's Multitool","Dagger",13],["Serial Quiller","Dagger",13],["The Final Death","Dagger",13],["Creature's Claw","Dagger",13],["Mantis Sickle","Dagger",14],["Kraken Shank","Dagger",14],["Pizza Cutter","Dagger",14],["Electrifying Microphone","Dagger",14],["Ghost Reaver","Dagger",15],["Windsworn","Dagger",15],["Drakalos Dagger","Dagger",15],["Platinum Katar","Dagger",15],["Omnicarver","Dagger",16],["Cloudcarver","Dagger",16],["Solaryn Sunslicer","Dagger",16],["Cudgel","Mace",1],["Spiked Cudgel","Mace",2],["Darkwood Branch","Mace",2],["Warhammer","Mace",3],["Liberty Mace","Mace",3],["Morning Star","Mace",4],["Inflatable Maul","Mace",4],["Flanged Mace","Mace",5],["First Morning Star","Mace",5],["The Dead Weight","Mace",5],["Skull Crusher","Mace",6],["Troublin Bludgeon","Mace",6],["Titan Scepter","Mace",6],["Evening Star","Mace",7],["Meteor Hammer","Mace",7],["Button Masher","Mace",7],["Powder Keg","Mace",8],["Whack-O'-Lantern","Mace",8],["Peppermint Mallet","Mace",8],["Mouse's Torch","Mace",8],["Tenderizer","Mace",9],["Wallace Mallet","Mace",9],["Striped Star","Mace",9],["Tower of Thorns","Mace",9],["Nautilus","Mace",10],["Opulent Maul","Mace",10],["Mundra's Masher","Mace",10],["Plumber's Hammer","Mace",10],["Maker's Hammer","Mace",10],["Thorium Hammer","Mace",11],["Sunglow Impact","Mace",11],["Gaia Maul","Mace",11],["Sokka's Club","Mace",11],["Mjölnir","Mace",12],["Eggshell Smasher","Mace",12],["Merry Christmace","Mace",12],["Crag Guardian","Mace",13],["Smash Hit","Mace",13],["Platinum Maul","Mace",13],["The M.A.U.L.","Mace",13],["Leathermaster's Mallet","Mace",13],["Ogre Lord Club","Mace",14],["Forsaken Censer","Mace",14],["Lordly Scepter","Mace",14],["Heart Thumper","Mace",14],["Backfire Hammer","Mace",14],["The Coconaught","Mace",15],["Hot Coconaught","Mace",15],["Four Wyrms Mace","Mace",15],["Gilded Horsepower","Mace",15],["Megaton Assimilator","Mace",16],["Pearlescent Nautilus","Mace",16],["Draftmaker","Mace",16],["Javelin","Spear",1],["Hunting Spear","Spear",2],["Bladed Spear","Spear",3],["Sturdy Pitchfork","Spear",3],["Ranseur","Spear",4],["Trishula","Spear",5],["Bunbun Lance","Spear",5],["Warlord Halberd","Spear",5],["Spetum","Spear",6],["Triton Lance","Spear",6],["Cu Chulainn's Lance","Spear",6],["Reaching Wishbone","Spear",6],["Royal Halberd","Spear",7],["Fangtian Huaji","Spear",7],["Twicicle Javelin","Spear",7],["Warrior Assegai","Spear",7],["Slumberthorn Curse","Spear",7],["Champion Lance","Spear",8],["Sunset Yari","Spear",8],["Star Lancer","Spear",8],["Olympian Javelin","Spear",8],["Wyvern Glaive","Spear",9],["Hoartooth Lance","Spear",9],["Luxurious Spear","Spear",9],["Blackthorn Razor","Spear",9],["Glade Lance","Spear",9],["Stellaria","Spear",10],["Longinus","Spear",10],["Birdbane Halberd","Spear",10],["Scream Amplifier","Spear",10],["Titania's Gift","Spear",11],["Jester Jouster","Spear",11],["Holy Night Lance","Spear",11],["Heaven's Wrath","Spear",12],["Propeller-Pike","Spear",12],["Pokey Parasol","Spear",12],["Opulent Halberd","Spear",12],["Blackened Bardiche","Spear",13],["Riptide","Spear",13],["Dire Kakivak","Spear",13],["Tianlong Lance","Spear",13],["Neptune's Authority","Spear",14],["One-Winged Halberd","Spear",14],["Blaze of Glory","Spear",14],["Blossomblade","Spear",15],["Twilight Brionac","Spear",15],["Platinum Lance","Spear",15],["Papertape Poker","Spear",15],["Paradox Entity","Spear",16],["Mundra's Crystal Spear","Spear",16],["It From the Crypt","Spear",16],["Poseidon's Might","Spear",16],["Training Bow","Bow",1],["Tailwind","Bow",1],["Elmwood Bow","Bow",2],["Reflex Bow","Bow",3],["Grand Harp","Bow",3],["Compound Bow","Bow",4],["Mundra's Hornbow","Bow",4],["Deadeye","Bow",5],["Hallowed Willow","Bow",5],["Thunderbranch","Bow",5],["Raptoria","Bow",6],["Quetzal Wing","Bow",6],["Bjorn's Bow","Bow",6],["Dragon Spine","Bow",6],["L'Arabesque","Bow",7],["Hotshot Bowgun","Bow",7],["Darkeye's Bow","Bow",7],["Yumi","Bow",8],["Cupid Bow","Bow",8],["Bramblebane","Bow",9],["Maplewood Gale","Bow",9],["Horn of Light Lost","Bow",9],["Gemini Strike","Bow",10],["Jolly Ranger","Bow",10],["Dragonwood Bow","Bow",10],["Stormrend","Bow",11],["Opulent Longbow","Bow",11],["Pinata Hunter","Bow",11],["Rising Star","Bow",11],["Boughwrought Bow","Bow",11],["Olympus","Bow",12],["Power Flipper","Bow",12],["Elite Pathfinder","Bow",12],["Grand Monarque","Bow",13],["Earthstrung Wings","Bow",13],["Jindai Zakura","Bow",13],["Platinum Sniper","Bow",13],["Queen of Hearts","Bow",13],["Frostlancer","Bow",14],["Titan Shotkeeper","Bow",14],["Bloodmoon Nemesis","Bow",14],["Santa's Little Sniper","Bow",14],["Sacrilege","Bow",15],["Banana Royale","Bow",15],["Shooting Star","Bow",15],["Anachron Resolute","Bow",16],["King Kaching","Bow",16],["Pearlescent Bow","Bow",16],["Carved Branch","Staff",1],["Sturdy Cane","Staff",2],["Oak Staff","Staff",3],["Owl Perch","Staff",3],["Luxurious Stick","Staff",3],["Bo Staff","Staff",4],["Apprentice Staff","Staff",4],["Slithering Scepter","Staff",4],["Jade Scepter","Staff",5],["Amber Staff","Staff",5],["Wiccan Broomstick","Staff",5],["Pizzamancer's Paddle","Staff",5],["Wizard Staff","Staff",6],["Staff of Seasons","Staff",6],["Bug Catcher's Net","Staff",6],["Elemental Dilettante","Staff",6],["Celestial Staff","Staff",7],["Mundra's Scepter","Staff",7],["Great Pagoda","Staff",7],["Lanternlight Holder","Staff",7],["Imperial Aquila","Staff",8],["Phoenix Staff","Staff",8],["Fluted Chime","Staff",8],["The Backscratcher","Staff",8],["Transcendence","Staff",9],["Tidebringer","Staff",9],["Zesty Scepter","Staff",9],["Seraphim","Staff",10],["Staff of Merriment","Staff",10],["Ashland Invoker","Staff",10],["Penumbra","Staff",11],["Ice Queen's Scepter","Staff",11],["Heartcaptor's Staff","Staff",11],["Gemologist Scepter","Staff",11],["Scepter of Xolimnul","Staff",12],["Opulent Staff","Staff",12],["Soulbinder Staff","Staff",12],["Pharaoh's Ankh","Staff",12],["Cloud Nine","Staff",13],["Gravity Controller","Staff",13],["Scepter of Ever-Wisdom","Staff",13],["Yule's Herald","Staff",13],["Platinum Scepter","Staff",13],["Ebbstone Channeler","Staff",14],["Mother of Pearls","Staff",14],["Herald of Feykind","Staff",14],["Quetzadusa Staff","Staff",14],["Arcane Vane","Staff",15],["The Pain Brush","Staff",15],["Royal Authority","Staff",15],["Pure Heart Rod","Staff",15],["Dimensional Anchor","Staff",16],["Fragment of Apocal","Staff",16],["Blackthorn Scepter","Staff",16],["Tomb Staff of Doom","Staff",16],["Baton","Wand",1],["Elvenwood Wand","Wand",2],["Hexer's Wand","Wand",3],["Steel Rod","Wand",4],["Star Rod","Wand",5],["Peppermint Cane","Wand",5],["Sylvanel","Wand",6],["Chōchin Gohei","Wand",6],["Ruby Wand","Wand",7],["Owl Wing Wand","Wand",7],["Wand of Midas","Wand",8],["The Original","Wand",8],["Evergreen Wand","Wand",9],["Equinox Rod","Wand",9],["Astral Conductor","Wand",10],["Grimar's Grand Wand","Wand",10],["Draconic Eyestalk","Wand",11],["Opulent Wand","Wand",11],["Moonlight Wand","Wand",11],["Herald of the End","Wand",12],["Ivory Queen Rod","Wand",12],["Fork of Roasting","Wand",12],["Pyroquartz Rod","Wand",13],["Lampcaster","Wand",13],["Caduceus","Wand",13],["Widowmaker's Invoker","Wand",14],["Platinum Wand","Wand",14],["Pollux Focus","Wand",14],["La Rose","Wand",15],["Eclipsed Wand","Wand",15],["Rod of Porcelain","Wand",15],["NEO Unknown","Wand",16],["Light Crossbow","Crossbow",1],["Hand Crossbow","Crossbow",2],["Arbalest","Crossbow",3],["Heavy Crossbow","Crossbow",4],["Cluckthrower","Crossbow",4],["Hunter's Crossbow","Crossbow",5],["Scorpio","Crossbow",6],["Primitech Slingshot","Crossbow",6],["Double Crossbow","Crossbow",7],["Chu-Ko-Nu","Crossbow",8],["Dra-Ko-Nu","Crossbow",8],["Triple Crossbow","Crossbow",9],["Super Repeater","Crossbow",10],["Nightwing Caster","Crossbow",10],["Leviathan","Crossbow",11],["Opulent Crossbow","Crossbow",11],["Titan Crossbow","Crossbow",11],["Godslayer Arbalest","Crossbow",12],["Baross' Backup","Crossbow",12],["Primarosa","Crossbow",13],["Somnus Boltcaster","Crossbow",13],["The Watcher","Crossbow",14],["Ironclad Grapple","Crossbow",14],["Seventh Wonder","Crossbow",15],["Dinosaur Hunter","Crossbow",15],["Platinum Crossbow","Crossbow",15],["Supernova Launcher","Crossbow",16],["Soulflame Thrower","Crossbow",16],["Pellet Gun","Gun",1],["Handgun","Gun",2],["Smoothbore","Gun",3],["Long Rifle","Gun",4],["Snowball Launcher","Gun",4],["Blunderbuss","Gun",5],["Boomstick","Gun",6],["Banana Gun","Gun",6],["Pellet Popper","Gun",6],["Kenora Mk. IV","Gun",7],["Darkenbuss","Gun",7],["Prototype Gatling","Gun",8],["Rusty Shotty","Gun",8],["Dragonator","Gun",9],["Handcask '65","Gun",9],["The Messenger","Gun",10],["Oxen Impact","Gun",10],["Omega Disintegrator","Gun",11],["Opulent Pistol","Gun",11],["Dogbone Blaster","Gun",11],["Blackbeard's Cannon","Gun",12],["Hotshot Carbine","Gun",12],["Gift Wrap Rifle","Gun",12],["Vainglory","Gun",13],["Sonic Trumpeteer","Gun",13],["Particle Beam Rifle","Gun",13],["Platinum Grenadier","Gun",13],["Pistil Pistol","Gun",14],["Tesla Prototype","Gun",14],["Mini Buster","Gun",14],["Wyrmbane Cannon","Gun",14],["Divine Eliminator","Gun",15],["Particle Thrower","Gun",15],["Royal Handcannon","Gun",15],["Acidifier-X","Gun",15],["Photon Phaser","Gun",16],["Water Gun","Gun",16],["Solaryn Trifuser","Gun",16],["Triangle","Instrument",3],["Air Guitar","Instrument",3],["Hunting Horn","Instrument",4],["Woodland Lute","Instrument",5],["Melancholyr","Instrument",6],["Jack-o'-Bongo","Instrument",6],["Party Drums","Instrument",7],["Ocarina of Rime","Instrument",7],["Snake Charmer","Instrument",8],["Portable Gong","Instrument",9],["Percussive Clam","Instrument",10],["Lyre of Desire","Instrument",11],["Molten Rockstar","Instrument",12],["Otherworldly Chime","Instrument",13],["Electro-Keytar","Instrument",13],["Cosmic Trumpet","Instrument",14],["Elysium Skylophone","Instrument",14],["Platinum Bell","Instrument",14],["Rockin' Doubleneck","Instrument",14],["Wendigo Drone","Instrument",15],["Frogsong Gong","Instrument",15],["Equine Liuqin","Instrument",15],["Nihil Lyre","Instrument",16],["Alien Bell-Beacon","Instrument",16],["Drum of Everwar","Instrument",16],["Twin Khopesh","Dual Wield",5],["Tonfas","Dual Wield",6],["The Murder Two","Dual Wield",7],["Roland's Own","Dual Wield",8],["Magnet Mallets","Dual Wield",8],["Radiant & Midnight","Dual Wield",9],["Jagged Duo","Dual Wield",10],["Silken Assailants","Dual Wield",11],["Slice & Dice","Dual Wield",12],["Crystal Destroyers","Dual Wield",13],["Elysium Reavers","Dual Wield",14],["Platinum Pair","Dual Wield",14],["Nook & Cranny","Dual Wield",15],["Titan Admiral Arms","Dual Wield",15],["Crushtacean Pincers","Dual Wield",15],["Twin Terroreyes","Dual Wield",15],["Dying Stars","Dual Wield",16],["Slaughter & Malice","Dual Wield",16],["Natural Toxifier","Catalyst",5],["Sandstorm Catalyst","Catalyst",6],["Gaze of Horus","Catalyst",7],["Chronomantic Stasis","Catalyst",8],["Orb of Dark Might","Catalyst",9],["Saltwater Spray","Catalyst",10],["Confetti Harmonizer","Catalyst",10],["Beakstorm Ball","Catalyst",11],["Sealed Eruption","Catalyst",12],["Caged Nothingness","Catalyst",13],["Divine Coalescence","Catalyst",14],["Orb of Everhunger","Catalyst",15],["Darkensmog","Catalyst",15],["Platinum Orb","Catalyst",15],["Monster Catcher","Catalyst",15],["Universe XVI","Catalyst",16],["Aperture Catalyst","Catalyst",16],["Robust Extinctor","Scythe",6],["Graceful Equity","Scythe",7],["Bone Contraption","Scythe",8],["Faustian Bargain","Scythe",9],["Ripley's Scythe","Scythe",9],["Frostlethal","Scythe",10],["Scythingale","Scythe",11],["Slim Reaper","Scythe",12],["Void Accomplice","Scythe",13],["Art of Regicide","Scythe",14],["Jade Faucheur","Scythe",15],["Esper Intemporal","Scythe",16],["Mintyleaf Herb","Herbal Medicine",1],["Sweet Grass","Herbal Medicine",2],["Moon Powder","Herbal Medicine",3],["Magical Mistletoe","Herbal Medicine",3],["Healing Salve","Herbal Medicine",4],["Venerable Oats","Herbal Medicine",4],["Garlic String","Herbal Medicine",4],["Silver Thistle","Herbal Medicine",5],["Bountiful Harvest","Herbal Medicine",5],["Flint Corn Bundle","Herbal Medicine",5],["Bloodvine","Herbal Medicine",6],["Fragrant Bouquet","Herbal Medicine",6],["Lil' Cactus","Herbal Medicine",6],["Mandragoroot","Herbal Medicine",7],["Unwilting Rose","Herbal Medicine",7],["Shrumyurnip Bundle","Herbal Medicine",7],["Blooming Wildwood","Herbal Medicine",7],["Wolf's Bane","Herbal Medicine",8],["Mistpeak Bloom","Herbal Medicine",8],["Fines Herbes","Herbal Medicine",8],["Cinderlake Chompers","Herbal Medicine",8],["Yggdrasil Branch","Herbal Medicine",9],["Luckiest Clover","Herbal Medicine",9],["Luxurious Panacea","Herbal Medicine",9],["Wyrmblood Ointment","Herbal Medicine",10],["Wild Oak Rose","Herbal Medicine",10],["Chrysanthemultitude","Herbal Medicine",10],["Florae Daemonica","Herbal Medicine",11],["Bleakspire Roots","Herbal Medicine",11],["Seltzer Surprise","Herbal Medicine",11],["Super Snack Pack","Herbal Medicine",11],["Philosopher's Stone","Herbal Medicine",12],["Sakura Infusion","Herbal Medicine",12],["Opulent Decoction","Herbal Medicine",12],["Premium Brand Jam","Herbal Medicine",12],["Voidbloom Roots","Herbal Medicine",13],["Slide Grease","Herbal Medicine",13],["Sandman's Pouch","Herbal Medicine",13],["Crystal Dew","Herbal Medicine",13],["Eternal Bonsai","Herbal Medicine",14],["Platinum Moss","Herbal Medicine",14],["Sumptuous Roses","Herbal Medicine",14],["Lone Flowerpot","Herbal Medicine",14],["Twig of Two Fates","Herbal Medicine",15],["Blooms Between","Herbal Medicine",15],["Magmatic Kelp","Herbal Medicine",15],["Nebulose Sporecaps","Herbal Medicine",16],["Enchanted Rose","Herbal Medicine",16],["Pencil Blossom","Herbal Medicine",16],["Warm Tea","Potion",1],["Healing Potion","Potion",2],["Magic Potion","Potion",3],["Science Project","Potion",3],["XL Healing Potion","Potion",4],["Elegant Tea Set","Potion",4],["Vial of Slime","Potion",4],["XL Magic Potion","Potion",5],["Titan Potion","Potion",5],["Old Salt's Brew","Potion",5],["Phoenix Tonic","Potion",6],["Safety Glue","Potion",6],["Zesty Granita","Potion",6],["Stardust Sample","Potion",6],["Potion of Renewal","Potion",7],["Bottled Mirth","Potion",7],["Fizzy Guzzle Bottle","Potion",7],["Canopic Jar","Potion",7],["Purple Bomb","Potion",8],["Gourd Elixir","Potion",8],["Naya's Special","Potion",8],["Special Sazonado","Potion",8],["Elixir of the Wyrm","Potion",8],["Soulfire Extract","Potion",9],["Tangy Decoction","Potion",9],["Oak Essence","Potion",9],["Icey Slushie","Potion",9],["Gaia Tonic","Potion",10],["Midnight Oil","Potion",10],["Opulent Elixir","Potion",10],["Sip o' the Sea","Potion",10],["Ninja Smoke Bomb","Potion",10],["Distilled Nebula","Potion",11],["Aurora Springwater","Potion",11],["Nectar Pitcher","Potion",11],["Ambrosia","Potion",12],["Mundra's Remedy","Potion",12],["Quintessence Purity","Potion",12],["Supreme Sunscreen","Potion",12],["Maple Holy Grail","Potion",12],["Conqueror's Blood","Potion",13],["Satchel of Essentials","Potion",13],["Billionaire Brew","Potion",13],["Fragrant Moisturizer","Potion",13],["Tincture of Finality","Potion",14],["Protein Shake","Potion",14],["Divine Contained","Potion",14],["Platinum Tankard","Potion",14],["Grandma's Teapot","Potion",14],["Primal Fire","Potion",15],["Ancient Waters","Potion",15],["Bubbling Cauldron","Potion",15],["Elemental Conflux","Potion",15],["Microcosmos Infusion","Potion",16],["Mixture of Resentment","Potion",16],["Scroll of Sparks","Spell",1],["Scroll of Cleansing","Spell",1],["Scroll of Armor","Spell",2],["Scroll of Storms","Spell",3],["Song of Valor","Spell",4],["Correspondence","Spell",4],["Monster Manual","Spell",5],["Tome of the Night","Spell",5],["Tome of Knowledge","Spell",5],["Jumanji Map","Spell",5],["Tome of Secrets","Spell",6],["Naughty or Nice List","Spell",6],["Spells Vol III","Spell",6],["Dark Oath","Spell",6],["Bound Lesser Demon","Spell",6],["Bagua Board","Spell",7],["Firework Bundle","Spell",7],["Tale of the Unicorn","Spell",7],["Tarot Deck","Spell",8],["Scroll of Fortune","Spell",8],["Rolled Up Leather","Spell",8],["Grimar's Collection","Spell",8],["Grimoire Aeternum","Spell",9],["Imperial Decree","Spell",9],["Luxurious Tablet","Spell",9],["Binder of Memories","Spell",9],["Ancestral Atlas","Spell",10],["Prayer Book","Spell",10],["Curse of the Night","Spell",10],["Druidic Grimoire","Spell",10],["Curious Abacus","Spell",10],["Celestial Choir","Spell",11],["Phoenix Litany","Spell",11],["Sealed Declaration","Spell",11],["Tiger Emperor's Edict","Spell",11],["Tome of All-Knowledge","Spell",11],["The Bound Beast","Spell",12],["Pharaoh's Pact","Spell",12],["Lost Star Chart","Spell",12],["Love Declaration","Spell",12],["Opulent Incantation","Spell",12],["Pandora's Box","Spell",13],["Sealed Hurricane","Spell",13],["Platinum Secret Map","Spell",13],["Tales of Yule","Spell",13],["Darkness Millennium","Spell",13],["Seal of Gaia","Spell",14],["Chronomancer's Timetable","Spell",14],["Lilu's Starfall","Spell",14],["Tribal Scribbles","Spell",15],["Mundra's Decree","Spell",15],["Ghost Trap","Spell",15],["Chapter Cauchemar","Spell",15],["Offworld Plaque","Spell",16],["Precursor's Ultimatum","Spell",16],["Tome of Souls Lost","Spell",16],["Breastplate","Heavy Armor",1],["Iron Mail","Heavy Armor",2],["Scale Armor","Heavy Armor",3],["Hauberk","Heavy Armor",4],["Knight Breastplate","Heavy Armor",5],["Ceremonial Breastplate","Heavy Armor",5],["Centurion Armor","Heavy Armor",5],["Paladin Plate","Heavy Armor",6],["Thorn Baron Armor","Heavy Armor",6],["Hive Guard Plate","Heavy Armor",6],["Samurai Do","Heavy Armor",7],["Brinewater Do","Heavy Armor",7],["Kyoshi Warrior Armor","Heavy Armor",7],["Warlord Plate","Heavy Armor",7],["General Plate","Heavy Armor",8],["Landsknecht Plate","Heavy Armor",8],["Santa's Guard Plate","Heavy Armor",8],["Berserker Armor","Heavy Armor",9],["Gaia Enforcer","Heavy Armor",9],["Star-Spangled Plate","Heavy Armor",9],["Argon's Armor","Heavy Armor",9],["Juggernaut Fortress","Heavy Armor",10],["Amber Citadel","Heavy Armor",10],["Opulent Breastplate","Heavy Armor",10],["Milesian Mail","Heavy Armor",10],["Celesteel Plate","Heavy Armor",11],["Canid Plate","Heavy Armor",11],["Fire Nation Armor","Heavy Armor",11],["Vermilion Guard Plate","Heavy Armor",12],["Oni Rōnin Armor","Heavy Armor",12],["Tyrant Plate Armor","Heavy Armor",12],["Lost Warrior's Plate","Heavy Armor",12],["Balefire Armor","Heavy Armor",13],["Magmacore Plate","Heavy Armor",13],["Titan Plate Armor","Heavy Armor",13],["CM-73 Armor Frame","Heavy Armor",13],["Xzyurnip Carapace","Heavy Armor",13],["Cobalt Plate Armor","Heavy Armor",14],["Cursed King's Plate","Heavy Armor",14],["Platinum Full Plate","Heavy Armor",14],["Fimbulwinter Plate","Heavy Armor",14],["Armor of Invincibility","Heavy Armor",14],["Behemoth Armor","Heavy Armor",15],["Teddy Bear Body","Heavy Armor",15],["Drakalos Armor","Heavy Armor",15],["BIT.Runner Armor","Heavy Armor",15],["Xenotype Exoskel","Heavy Armor",15],["Stone Jaguar Armor","Heavy Armor",15],["Darkmatter Frame","Heavy Armor",16],["Forgotten Graveplate","Heavy Armor",16],["Leather Armor","Light Armor",1],["Gambeson","Light Armor",2],["Doublet","Light Armor",3],["Studded Armor","Light Armor",4],["Blizzard Armor","Light Armor",4],["Hide Armor","Light Armor",5],["Mundra's Tabard","Light Armor",5],["Sky Pirate Outfit","Light Armor",5],["Savage Garb","Light Armor",6],["Glade Guard Armor","Light Armor",6],["Pumpkin Armor","Light Armor",6],["Solaryn Worker Wear","Light Armor",6],["Ninja Garb","Light Armor",7],["Nightwing Mantle","Light Armor",7],["Golden Fleece","Light Armor",7],["Windrunner Armor","Light Armor",8],["Sokka's Outfit","Light Armor",8],["Jester Outfit","Light Armor",8],["Drakeskin Armor","Light Armor",9],["Smith Attire","Light Armor",9],["Royal Attire","Light Armor",9],["Corsair Mantle","Light Armor",10],["Swan's Garment","Light Armor",10],["Cloudwalker Armor","Light Armor",10],["Everdusk Lord Attire","Light Armor",11],["Opulent Armor","Light Armor",11],["Barkback's Armor","Light Armor",11],["Cat Burglar Outfit","Light Armor",11],["Dawn Thief Uniform","Light Armor",12],["Shroud of the Lost","Light Armor",12],["Stylish Poncho","Light Armor",12],["Desperado Outfit","Light Armor",12],["Wildhunt Leathers","Light Armor",13],["Garbs of Morpheus","Light Armor",13],["Wayfinder's Outfit","Light Armor",13],["Leathermaster's Apron","Light Armor",13],["Soothsayer's Garbs","Light Armor",14],["Titan Admiral Coat","Light Armor",14],["Lacrosse Set","Light Armor",14],["Serpent Vestment","Light Armor",14],["Chrysalid Silks","Light Armor",15],["Sia's Fancy Outfit","Light Armor",15],["Princely Attire","Light Armor",15],["Platinum Gambeson","Light Armor",15],["Kintsugi Armor","Light Armor",15],["Ghostbusters Suit","Light Armor",15],["Voyager Biosuit","Light Armor",16],["Clovered Gambeson","Light Armor",16],["Shirt","Clothes",1],["Black Robe","Clothes",2],["Druid's Robe","Clothes",3],["Disciple's Robe","Clothes",4],["Scholar's Tunic","Clothes",5],["Explorer's Outfit","Clothes",5],["Tailor Mantle","Clothes",5],["Witch's Outfit","Clothes",6],["Vestal Raiments","Clothes",6],["Wizard Attire","Clothes",6],["Waterproof Lilyrobe","Clothes",6],["Midnight Apparel","Clothes",7],["Aang's Robe","Clothes",7],["Void Enrobed","Clothes",7],["Shaman Vestment","Clothes",8],["Cupid Robes","Clothes",8],["Luxurious Attire","Clothes",8],["Blood Monarch Outfit","Clothes",8],["Astravestimenta","Clothes",9],["Ostara Vest","Clothes",9],["Desert Threads","Clothes",9],["Valet Uniform","Clothes",9],["Archmage Raiments","Clothes",10],["Republic Garments","Clothes",10],["Elemental Supremacy","Clothes",10],["Djinn Robes","Clothes",11],["Moonlight Kimono","Clothes",11],["Tiger Emperor's Robe","Clothes",11],["Exarch Robes","Clothes",12],["Soulbinder Regalia","Clothes",12],["Opulent Vestment","Clothes",12],["Garb of the Primordial","Clothes",12],["Ice Queen's Silks","Clothes",12],["Voidminster Habit","Clothes",13],["Business Suit","Clothes",13],["Gothita Frock Coat","Clothes",13],["Starlight Raiments","Clothes",13],["Archdruid Tunic","Clothes",14],["Chronomancer's Robes","Clothes",14],["Wave Abbot Gi","Clothes",14],["Fey Haute Couture","Clothes",14],["Deepsea Mageskin","Clothes",15],["Earthen Membrane","Clothes",15],["Malady's Robe","Clothes",15],["Platinum Robe","Clothes",15],["Pyromancer's Robe","Clothes",15],["Phoenix Feathers","Clothes",15],["Worldshaper Robe","Clothes",16],["Lethal Petal Robe","Clothes",16],["Reaper's Robes","Clothes",16],["Sturdy Cap","Helmet",1],["Warrior Helmet","Helmet",2],["Horned Helm","Helmet",3],["Raider Helm","Helmet",4],["Knight Heaume","Helmet",5],["Brinewater Helm","Helmet",5],["Eagle Helm","Helmet",5],["Rex Chomper","Helmet",5],["Paladin Helm","Helmet",6],["Kodiak Helmet","Helmet",6],["Fire Nation Helm","Helmet",6],["Crown of Tyranny","Helmet",6],["Samurai Kabuto","Helmet",7],["Gladiator Helm","Helmet",7],["Sandcastle Protector","Helmet",7],["Titan Helm","Helmet",7],["General Heaume","Helmet",8],["Crusader Helmet","Helmet",8],["Warlord Helmet","Helmet",8],["Dragon Skull","Helmet",8],["Berserker Helmet","Helmet",9],["Fimbulwinter Dome","Helmet",9],["Centurion Helmet","Helmet",9],["Juggernaut Furnace","Helmet",10],["Gobble Lord Helm","Helmet",10],["Opulent Heaume","Helmet",10],["Celesteel Heaume","Helmet",11],["Canid Helmet","Helmet",11],["Cupid's Heaume","Helmet",11],["Xenotype Visage","Helmet",11],["Vermilion Guard Helm","Helmet",12],["Onyx King Helm","Helmet",12],["Thorn Baron Helm","Helmet",12],["Hades' Soulflame","Helmet",12],["Balefire Gaze","Helmet",13],["Taishōgun Kabuto","Helmet",13],["CM-73 Visor","Helmet",13],["Platinum Helm","Helmet",13],["Creature's Chitin","Helmet",13],["Cobalt Commander","Helmet",14],["Heaume of Apotheosis","Helmet",14],["Mundra's Skull","Helmet",14],["Hercules Horn","Helmet",14],["Argon's Helm","Helmet",14],["Behemoth Skull","Helmet",15],["Teddy Bear Head","Helmet",15],["Cursed King's Helm","Helmet",15],["BIT.Runner Visor","Helmet",15],["Stone Jaguar Head","Helmet",15],["Darkmatter Cortex","Helmet",16],["Atlantean Deepdiver","Helmet",16],["Heaume of the Mightiest","Helmet",16],["Pearlescent Helmet","Helmet",16],["Leather Cap","Rogue Hat",1],["Canopy Cap","Rogue Hat",1],["Brimmed Hat","Rogue Hat",2],["Feathered Hat","Rogue Hat",3],["Tricorn","Rogue Hat",4],["Silk Hood","Rogue Hat",5],["Santa's Elf Hat","Rogue Hat",5],["Pharaoh's Nemes","Rogue Hat",5],["Pirate Hat","Rogue Hat",6],["Lovely Hat","Rogue Hat",6],["Kintsugi Beak","Rogue Hat",6],["Night Cowl","Rogue Hat",7],["Nomad Veil","Rogue Hat",7],["Harvester's Hood","Rogue Hat",7],["Jester's Hat","Rogue Hat",7],["Windrunner Hat","Rogue Hat",8],["Blue Spirit Mask","Rogue Hat",8],["Musketeer Hat","Rogue Hat",8],["Titan Admiral Hat","Rogue Hat",8],["Drakeskin Face","Rogue Hat",9],["Storm Dragon Face","Rogue Hat",9],["Grand Tyrolean","Rogue Hat",9],["Lone Wolf Cowl","Rogue Hat",9],["Corsair Tricorn","Rogue Hat",10],["Republic Coiffe","Rogue Hat",10],["Cardboard Kabuto","Rogue Hat",10],["Everdusk Cowl","Rogue Hat",11],["Abyssal Hood","Rogue Hat",11],["Rogue Sombrero","Rogue Hat",11],["Cat Burglar Hood","Rogue Hat",11],["Opulent Sallet","Rogue Hat",11],["Dawn Thief Cowl","Rogue Hat",12],["Bunbun Masquerade","Rogue Hat",12],["Dragonseeker Goggles","Rogue Hat",12],["Kitsune Spirit Guise","Rogue Hat",12],["Wildhunt Skull","Rogue Hat",13],["Hooded Iggaak","Rogue Hat",13],["Wereboar's Hood","Rogue Hat",13],["Platinum Beret","Rogue Hat",13],["Hazmat Breather","Rogue Hat",13],["Soothsayer's Sight","Rogue Hat",14],["Wrapped Whispers","Rogue Hat",14],["Lacrosse Helm","Rogue Hat",14],["Ghastly Cowl","Rogue Hat",14],["Chrysalid Facade","Rogue Hat",15],["Cherubim Visage","Rogue Hat",15],["Scavenger's Goggles","Rogue Hat",15],["Princely Turban","Rogue Hat",15],["Ecto-Goggles","Rogue Hat",15],["Facechanger","Rogue Hat",15],["Voyager Neovisor","Rogue Hat",16],["Hermes' Hat","Rogue Hat",16],["Stitched Cone","Magician Hat",1],["Black Cowl","Magician Hat",2],["Druid Laurels","Magician Hat",3],["Apprentice Tiara","Magician Hat",3],["Bronze Circlet","Magician Hat",4],["Wizard Hat","Magician Hat",5],["Hat of the Four Winds","Magician Hat",5],["Ostara Hat","Magician Hat",5],["Witch Hat","Magician Hat",6],["Waterproof Lilycap","Magician Hat",6],["Owl Cowl","Magician Hat",6],["Soulhost Hat","Magician Hat",6],["Tactician Hat","Magician Hat",7],["Summoner Hat","Magician Hat",7],["Ivory Queen Crown","Magician Hat",7],["Shaman Hat","Magician Hat",8],["Luxurious Headdress","Magician Hat",8],["Hi-Cardio Bandana","Magician Hat",8],["Astral Hat","Magician Hat",9],["Raven Beak","Magician Hat",9],["Spellward Hat","Magician Hat",9],["Opal Diadem","Magician Hat",10],["Night Crown","Magician Hat",10],["Snake Counselor","Magician Hat",10],["Djinn Veil","Magician Hat",11],["Elegant Top Hat","Magician Hat",11],["Ice Queen's Summer Hat","Magician Hat",11],["Exarch Mitre","Magician Hat",12],["Sakura Eboshi","Magician Hat",12],["Opulent Headdress","Magician Hat",12],["Phoenix Crest","Magician Hat",12],["Empress Hairpins","Magician Hat",12],["Voidminster Hat","Magician Hat",13],["Elysium Halo","Magician Hat",13],["Tiara of Tides","Magician Hat",13],["Teeny Top Hat","Magician Hat",13],["Magician's Hat","Magician Hat",13],["Archdruid's Authority","Magician Hat",14],["Platinum Winter Hat","Magician Hat",14],["Angler's Veil","Magician Hat",14],["Frostfire Catalyst","Magician Hat",14],["Lilu's Secret Hat","Magician Hat",14],["Deepsea Kasa","Magician Hat",15],["Pyroclastic Crown","Magician Hat",15],["Hallowitch Hat","Magician Hat",15],["Phoenix Cowl","Magician Hat",15],["Dark Wizard Hat","Magician Hat",15],["Worldshaper Hood","Magician Hat",16],["Thinkin' Cap","Magician Hat",16],["All-Knowing Cone","Magician Hat",16],["Autumnal Mask","Mask",6],["Stern Sentinel","Mask",7],["Mask of Glass","Mask",8],["Sightless Seer","Mask",9],["Gleeful Oni Mask","Mask",10],["Facade of Glib Lies","Mask",11],["Forgewraith","Mask",12],["Kitsune's Mad Eyes","Mask",13],["Gaze of the Godless","Mask",14],["Tricera Face","Mask",15],["Visage Unto Infinity","Mask",16],["Fairlyn's Soulsight","Mask",16],["Iron Armguards","Gauntlets",1],["Plated Gauntlets","Gauntlets",2],["Warrior Gauntlets","Gauntlets",3],["Demi Gauntlets","Gauntlets",4],["Pumpkin Gauntlets","Gauntlets",4],["CM-73 Manipulators","Gauntlets",4],["Knight Gauntlets","Gauntlets",5],["Santa's Guard Gauntlets","Gauntlets",5],["Teddy Bear Paws","Gauntlets",5],["Hands of the Fifth","Gauntlets",5],["Paladin Gauntlets","Gauntlets",6],["Sungrasp Gauntlets","Gauntlets",6],["Landsknecht Gauntlets","Gauntlets",6],["Samurai Kote","Gauntlets",7],["Republic Gauntlets","Gauntlets",7],["Fruity Gauntlets","Gauntlets",7],["General Gauntlets","Gauntlets",8],["Hands of the Avatar","Gauntlets",8],["Berserker Gauntlets","Gauntlets",9],["Luxurious Gauntlets","Gauntlets",9],["Lost Warrior's Gauntlets","Gauntlets",9],["Juggernaut Grip","Gauntlets",10],["Winter's Touch","Gauntlets",10],["Gauntlets of Fortune","Gauntlets",10],["Celesteel Gauntlets","Gauntlets",11],["Gaia's Hold","Gauntlets",11],["Vanguard Gauntlets","Gauntlets",11],["Huscarl Gauntlets","Gauntlets",11],["Vermilion Guard Might","Gauntlets",12],["Goon's Facesmackers","Gauntlets",12],["Opulent Dracofists","Gauntlets",12],["Tyrant Fists","Gauntlets",12],["Balefire Gauntlets","Gauntlets",13],["Power Gauntlet","Gauntlets",13],["Platinum Gauntlets","Gauntlets",13],["Dragonfang Fists","Gauntlets",13],["Cobalt Gauntlets","Gauntlets",14],["Eternity Gauntlets","Gauntlets",14],["Chitinous Claws","Gauntlets",14],["Mighty Mint Mitts","Gauntlets",14],["Titan Gauntlets","Gauntlets",14],["Behemoth Claws","Gauntlets",15],["Pneumatic Gauntlets","Gauntlets",15],["Cursed King's Might","Gauntlets",15],["Xenotype Forelimbs","Gauntlets",15],["Stone Jaguar Gauntlets","Gauntlets",15],["Darkmatter Shells","Gauntlets",16],["Xzyurnip Foragers","Gauntlets",16],["Leather Gloves","Gloves",1],["Bracers","Gloves",2],["Thief's Gloves","Gloves",3],["Swift Mitts","Gloves",3],["Patchleather Bracers","Gloves",3],["Studded Gloves","Gloves",4],["Regal Bangles","Gloves",4],["Elven Vambraces","Gloves",5],["Ostara Gloves","Gloves",5],["Sia's Gloves","Gloves",5],["Savage Claws","Gloves",6],["Starlight Fingers","Gloves",6],["Black Wyrm Claws","Gloves",6],["Ninja Gloves","Gloves",7],["Cat Burglar Claws","Gloves",7],["Gothita Glovelettes","Gloves",7],["Windrunner Gloves","Gloves",8],["Sakura Cuffs","Gloves",8],["Hands of Sleight","Gloves",8],["Lethal Petal Cuffs","Gloves",8],["Drakeskin Gloves","Gloves",9],["Mountain Man Mitts","Gloves",9],["Boatswain's Glove","Gloves",9],["Werewolf Claws","Gloves",9],["Corsair Gloves","Gloves",10],["Fortunate Gloves","Gloves",10],["Yami's Gloves","Gloves",10],["Opulent Grasp","Gloves",10],["Everdusk Gloves","Gloves",11],["Raptor Wings","Gloves",11],["Nightwing Vambraces","Gloves",11],["Dawn Thief's Touch","Gloves",12],["Swindler's Fingers","Gloves",12],["Gloves of Rhythm","Gloves",12],["Gants d'Artagnan","Gloves",12],["Wildhunt Gloves","Gloves",13],["Camper's Compass","Gloves",13],["Pure Heart Gloves","Gloves",13],["Soothsayer's Hands","Gloves",14],["Lacrosse Gloves","Gloves",14],["Platinum Gloves","Gloves",14],["Frostfire Weavers","Gloves",14],["Betrayer's Hands","Gloves",14],["Chrysalid Gloves","Gloves",15],["Titan Admiral Gloves","Gloves",15],["Hallowitch Gloves","Gloves",15],["Voyager Dexteroses","Gloves",16],["Hands of Purpose","Gloves",16],["Shin Guards","Heavy Footwear",1],["Long Boots","Heavy Footwear",2],["Iron Greaves","Heavy Footwear",3],["Hero's Boots","Heavy Footwear",3],["Reinforced Greaves","Heavy Footwear",4],["Plated Squeakers","Heavy Footwear",4],["Knight Sollerets","Heavy Footwear",5],["Cindersole","Heavy Footwear",5],["Warlord Boots","Heavy Footwear",5],["Paladin Boots","Heavy Footwear",6],["Canid Paws","Heavy Footwear",6],["Ashkickers","Heavy Footwear",6],["Samurai Haidate","Heavy Footwear",7],["Topaz Greaves","Heavy Footwear",7],["Xenotype Walkers","Heavy Footwear",7],["General Greaves","Heavy Footwear",8],["CM-73 Jetboots","Heavy Footwear",8],["Berserker Stompers","Heavy Footwear",9],["Luxurious Boots","Heavy Footwear",9],["Vanguard Greaves","Heavy Footwear",9],["Lost Warrior's Greaves","Heavy Footwear",9],["Juggernaut Greaves","Heavy Footwear",10],["Bunbun Booties","Heavy Footwear",10],["Greaves of the Fifth","Heavy Footwear",10],["Celesteel Boots","Heavy Footwear",11],["Star-Spangled Greaves","Heavy Footwear",11],["Santa's Guard Boots","Heavy Footwear",11],["Vermilion Guard Greaves","Heavy Footwear",12],["Boots of Zeal","Heavy Footwear",12],["Fruity Booties","Heavy Footwear",12],["Opulent Greaves","Heavy Footwear",12],["Rex Stompers","Heavy Footwear",12],["Balefire Greaves","Heavy Footwear",13],["Titan Boots","Heavy Footwear",13],["Crystal Sollerets","Heavy Footwear",13],["Cobalt Greaves","Heavy Footwear",14],["Tyrant's Wake","Heavy Footwear",14],["Magmacore Greaves","Heavy Footwear",14],["Fimbulwinter Boots","Heavy Footwear",14],["Rock Stompers","Heavy Footwear",14],["Behemoth Feet","Heavy Footwear",15],["Teddy Bear Feet","Heavy Footwear",15],["Krampus Hooves","Heavy Footwear",15],["Platinum Greaves","Heavy Footwear",15],["Stone Jaguar Greaves","Heavy Footwear",15],["Darkmatter Gliders","Heavy Footwear",16],["Xzyurnip Tentalons","Heavy Footwear",16],["Death Battleboots","Heavy Footwear",16],["Leather Boots","Light Footwear",1],["Trailblazers","Light Footwear",1],["Flip-Flops","Light Footwear",2],["Soft Shoes","Light Footwear",3],["Legionnaire Sandals","Light Footwear",3],["Thief's Shoes","Light Footwear",4],["Perennial Sandals","Light Footwear",4],["Elven Shoes","Light Footwear",5],["Moonlight Zōri","Light Footwear",5],["Lilu's Shoes","Light Footwear",5],["Savage Stride","Light Footwear",6],["Sakura Tabi","Light Footwear",6],["Sultan Steps","Light Footwear",6],["Compact Snowshoes","Light Footwear",6],["Ninja Tabi","Light Footwear",7],["Nightwing Shoes","Light Footwear",7],["Hallowitch Shoes","Light Footwear",7],["Cardboard Clogs","Light Footwear",7],["Windrunner Boots","Light Footwear",8],["Alpine Stride","Light Footwear",8],["Birdrunners","Light Footwear",8],["Lacrosse Cleats","Light Footwear",8],["Drakeskin Boots","Light Footwear",9],["Plaguewalkers","Light Footwear",9],["Shoes of Style","Light Footwear",9],["Corsair Boots","Light Footwear",10],["Cloudwalker Steps","Light Footwear",10],["Giant's Boots","Light Footwear",10],["Lethal Petal Boots","Light Footwear",10],["Everdusk Boots","Light Footwear",11],["Raptor Talons","Light Footwear",11],["Opulent Footwraps","Light Footwear",11],["Eclipsed Pair","Light Footwear",11],["Dawn Thief's Path","Light Footwear",12],["Desperado Spurs","Light Footwear",12],["Hunter Moccasins","Light Footwear",12],["Fairy Sandals","Light Footwear",12],["Wildhunt Sandals","Light Footwear",13],["Platinum Shoes","Light Footwear",13],["Deluxe Flip-Flops","Light Footwear",13],["Hermes Sandals","Light Footwear",13],["Voidwalkers","Light Footwear",13],["Soothsayer's Boots","Light Footwear",14],["Hi-Cardio Shoes","Light Footwear",14],["Werewolf Feet","Light Footwear",14],["Steel-Studded Boots","Light Footwear",14],["Chrysalid Boots","Light Footwear",15],["Fleetfoot Travelers","Light Footwear",15],["Sia's Sandals","Light Footwear",15],["Titan Admiral Boots","Light Footwear",15],["Slathered Slippers","Light Footwear",15],["Phoenix Talons","Light Footwear",15],["Voyager Stabilizers","Light Footwear",16],["Gemmed Footpaws","Light Footwear",16],["Wooden Shield","Shield",1],["Heavy Buckler","Shield",2],["Oaken Shield","Shield",3],["Iron Shield","Shield",4],["Aurum Ward","Shield",4],["Teardrop Shield","Shield",5],["Imperial Scutum","Shield",5],["Champion Vigil","Shield",5],["Ol' Grogwood","Shield",5],["Mythril Aspis","Shield",6],["Raider Buckler","Shield",6],["Gaia Aegis","Shield",6],["Wyrmguard","Shield",7],["Vanguard Buckler","Shield",7],["Neku Shield","Shield",7],["Ancestor Totem","Shield",8],["Goreboar Targe","Shield",8],["Painted Palette","Shield",8],["Angelic Pavise","Shield",9],["Prometheon","Shield",9],["Milesian Shield","Shield",9],["Bunbun Buckler","Shield",9],["Luxurious Aegis","Shield",9],["Goldmane Guard","Shield",10],["Emperor Wyrmguard","Shield",10],["Tricera Targe","Shield",10],["Audit Protector","Shield",10],["Bearded Paragon","Shield",11],["Honeycomb Defender","Shield",11],["Crystalice Targe","Shield",11],["Solaryn Panel","Shield",11],["Abyssal Artifact","Shield",12],["Titan Shield","Shield",12],["Opulent Buckler","Shield",12],["Bastion of Dawn","Shield",12],["Elongo Shield","Shield",12],["Chloroshield","Shield",13],["Radical Waverider","Shield",13],["Mundra's Aegis","Shield",13],["CM-73 Shield","Shield",13],["Dragon Sacred Gem","Shield",13],["Hell's Gate","Shield",14],["Xolimnul's Fortress","Shield",14],["Cursed King's Aegis","Shield",14],["Pizza Pavise","Shield",14],["Argon's Shield","Shield",14],["Seraphim Gaze","Shield",15],["Platinum Ward","Shield",15],["Collector's Piece","Shield",15],["Cardboard Guard","Shield",15],["Ultima Deflector","Shield",16],["Wall of Pain","Shield",16],["Swamp Knapsack","Quiver",5],["Wasterlander's Quiver","Quiver",6],["Pharaoh's Arsenal","Quiver",7],["Arrows of Ruin","Quiver",8],["Knightly Quiver","Quiver",9],["Quiver of Shoals","Quiver",10],["Bleakspire Bundle","Quiver",11],["Volcanic Pocket","Quiver",12],["Elsewhere Arrows","Quiver",13],["Quiver of the Avatar","Quiver",14],["Santa's Present Bag","Quiver",14],["Rex Backpack","Quiver",15],["Biting Bolts","Quiver",15],["Platinum Quiver","Quiver",15],["Baryon Battlebolts","Quiver",16],["Zeus' Thunderbolts","Quiver",16],["Adventurer Cape","Cloak",3],["Administrator Cloak","Cloak",4],["Druid Cloak","Cloak",5],["Imperial Cape","Cloak",6],["Vampire Wings","Cloak",6],["Elven Cloak","Cloak",7],["Beast King's Cloak","Cloak",8],["Dragonlord Crest","Cloak",9],["Tyrant Cloak","Cloak",9],["Archbishop Mantle","Cloak",10],["Voidcloth From Beyond","Cloak",11],["Opulent Cloak","Cloak",11],["Woven Lilycloak","Cloak",11],["Herald's Mantle","Cloak",12],["Sakura Cloak","Cloak",12],["Fairy Wings","Cloak",12],["Cloak Everflowing","Cloak",13],["Coastal Towel","Cloak",13],["Dragon Emperor's Cloak","Cloak",13],["Banner of Nilea","Cloak",13],["Elysium Mantle","Cloak",14],["Giant Moth Wings","Cloak",14],["Donovan's Cloak","Cloak",14],["Lord of the Wildwoods","Cloak",15],["Sia's Royal Mantle","Cloak",15],["Platinum Cloak","Cloak",15],["Budget Cloak","Cloak",15],["Mantled Galaxica","Cloak",16],["Mantle of Splendor","Cloak",16],["Shroud of the Underking","Cloak",16],["Primitive Idol","Idol",5],["Portable Totem Pole","Idol",6],["Guardian Effigy","Idol",7],["Timeworn Pillar","Idol",8],["Ghostly Mockery","Idol",9],["Idol from the Deep","Idol",10],["Harpy Totem","Idol",11],["Shattered Totem","Idol",11],["Obsidian Devourer","Idol",12],["Tower of Void","Idol",13],["Pure Heart Receptacle","Idol",13],["Avatar Core","Idol",14],["Ancient Statuette","Idol",15],["Platinum Ancestor","Idol",15],["Jaguar Statuette","Idol",15],["Avatar of Magic","Idol",15],["Envoy of the Eternitree","Idol",16],["Feline of Fortune","Idol",16],["Pearlescent Idol","Idol",16],["Iron Ring","Ring",1],["Alloy Loop","Ring",2],["Ruby Ring","Ring",3],["Emerald Ring","Ring",3],["Silver Band","Ring",4],["Ring of Passion","Ring",4],["Noble Ring","Ring",5],["Ring of Rhythm","Ring",5],["Claud's Will","Ring",5],["Fortune Enhancer","Ring",5],["Knight Signet","Ring",6],["Ring of Liberty","Ring",6],["Qian Loop","Ring",6],["Sapphire Ring","Ring",6],["Batrachite Stone","Ring",7],["Soulstone Ring","Ring",7],["Ring of the Chosen","Ring",7],["Twin Coiled Ring","Ring",7],["Brimstone Coil","Ring",8],["Ring of Vampire Kin","Ring",8],["Survival Strap","Ring",8],["Fairfolk Band","Ring",9],["Dawnflower Ring","Ring",9],["Valedictorian Ring","Ring",9],["Luxurious Signet","Ring",9],["Borealis","Ring",10],["Northwind Gem","Ring",10],["Blizzard Ring","Ring",10],["Bunbun Band","Ring",10],["Rubicon Prison","Ring",11],["Crunchy Bracelet","Ring",11],["Ring of New Beginnings","Ring",11],["Pearlescent Perfection","Ring",12],["Crystalice Loop","Ring",12],["Ogun's Onyx Ring","Ring",12],["Maple Ration Mini","Ring",12],["Opulent Signet","Ring",12],["Mark of Ouroboros","Ring",13],["Jade Lotus Loop","Ring",13],["Platinum Rings","Ring",13],["Sacred Scarab","Ring",13],["Pocket Dimension","Ring",14],["Neptune's Domain","Ring",14],["Greenlight Ring","Ring",14],["Serene Tide","Ring",14],["Bloodstone Claw","Ring",15],["Ring of Many Colors","Ring",15],["Unbroken Signet","Ring",15],["Ring of Midas","Ring",15],["Slipstream Assistant","Ring",16],["Briar Kiss","Ring",16],["Memento","Amulet",1],["Jade Pendant","Amulet",2],["Iron Bond","Amulet",3],["Mundra's Amulet","Amulet",3],["Sun Pendant","Amulet",4],["Eclipse Amulet","Amulet",4],["Medal of Honor","Amulet",4],["Noble Chain","Amulet",5],["Lucky Medallion","Amulet",5],["Luxurious Charm","Amulet",5],["P.K.E. Meter","Amulet",5],["Holy Symbol","Amulet",6],["Convenient Pendant","Amulet",6],["Trinket of the Fifth","Amulet",6],["Titanium Torc","Amulet",7],["Magical Timepiece","Amulet",7],["The Dreamcatcher","Amulet",7],["Prayer Beads","Amulet",7],["Magatama Necklace","Amulet",8],["Dragonsoul Pendant","Amulet",8],["Archivist Glasses","Amulet",8],["Chronomancer's Timekeeper","Amulet",8],["Stygian Phylactery","Amulet",9],["Ursa Totem","Amulet",9],["P.E.T. Portable","Amulet",9],["Alimyriad","Amulet",10],["Freyja's Talisman","Amulet",10],["VIP Talisman","Amulet",10],["Amulet of Midas","Amulet",10],["Brísingamen","Amulet",11],["Monsoon Heart","Amulet",11],["Forlorn Acorn","Amulet",11],["Gyatso's Amulet","Amulet",11],["Fellgrove Talisman","Amulet",11],["Titania's Keepsake","Amulet",12],["Opulent Carcanet","Amulet",12],["Gamepad Mini","Amulet",12],["Eternal Hourglass","Amulet",12],["Fairy Wreath","Amulet",12],["Titania's Timepiece","Amulet",13],["Bleakspire Charm","Amulet",13],["Platinum Insignia","Amulet",13],["Charlatan's Amulet","Amulet",13],["Titania's Heart","Amulet",14],["Might of the Earth","Amulet",14],["Gold Medal","Amulet",14],["Star of the Show","Amulet",14],["Torc of Peace","Amulet",14],["Trophy of Fangs","Amulet",15],["Malady's Memento","Amulet",15],["Zephyr's Dampener","Amulet",15],["Pure Heart Barrette","Amulet",15],["Elephant Amulet","Amulet",15],["The Quadforce","Amulet",15],["Universal Translator","Amulet",16],["Fell Spectator","Amulet",16],["Troublin","Familiar",3],["Yeti","Familiar",4],["Toadwitch","Familiar",5],["Mushgoon","Familiar",6],["Anubis","Familiar",7],["Kirin","Familiar",7],["Cyclops","Familiar",8],["Tyrant","Familiar",9],["Mermaid","Familiar",10],["Harpy","Familiar",11],["Opulent Golem","Familiar",11],["Crushtacean","Familiar",12],["Voidling","Familiar",13],["Avatar","Familiar",14],["Platinum Golem","Familiar",14],["Rex","Familiar",15],["Dancing Lion","Familiar",15],["Xzyurnip","Familiar",16],["Bacon and Eggs","Meal",3],["Gua Bao","Meal",4],["CosmOs Cereals","Meal",4],["Poutine","Meal",5],["Sugar Shack Special","Meal",5],["Shepherd's Pie","Meal",5],["Zongzi Snack","Meal",5],["Pepper Dolma","Meal",5],["Cheeseburger","Meal",6],["Margherita Pizza","Meal",6],["Power-Up Pie","Meal",6],["King Crab Appetizer","Meal",6],["Ahi Poke Bowl","Meal",7],["Creamy Scallops","Meal",7],["Tournedos Rossini","Meal",7],["Seven Oysters","Meal",7],["Sushi","Meal",8],["Holiday Ham","Meal",8],["Rime & Dine","Meal",8],["Super Spicy Curry","Meal",9],["Packed Takeout","Meal",9],["Humble Dolma","Meal",9],["Veggie Kebabs","Meal",10],["Horrorbowl","Meal",10],["Deluxe Ramen","Meal",11],["Steamed Sea Bass","Meal",11],["Huli-Huli Chicken","Meal",12],["Opulent Tamales","Meal",12],["Pot of Paella","Meal",13],["Very Hot Pot","Meal",13],["Crispy Roast Duck","Meal",13],["Teatime Snack","Meal",13],["Mirza Ghasemi","Meal",14],["Jambon du Donjon","Meal",14],["Troublin Bento","Meal",14],["Family Stew","Meal",14],["Dino Nuggies","Meal",15],["Ruler's Feast","Meal",15],["Royal Feast","Meal",15],["Platinum Steak Dinner","Meal",15],["Glorb en Sauce","Meal",16],["Vegan Glorb","Meal",16],["Solaryn Hot Pot","Meal",16],["Cookie Plate","Dessert",3],["Shaved Ice","Dessert",4],["Taiyaki","Dessert",5],["Cheesecake","Dessert",6],["Chocolate Box","Dessert",6],["Macaron Set","Dessert",7],["Prickly Ice Cream","Dessert",7],["Strawberry Mochi","Dessert",8],["Matcha Swiss Roll","Dessert",9],["Pineapple Cake","Dessert",10],["Tuxedo Cake","Dessert",11],["Halo-Halo","Dessert",12],["Coconut Cream Cake","Dessert",12],["Opulent Churros","Dessert",12],["Glazed Mirror Cake","Dessert",12],["Ultimate Fruit Salad","Dessert",13],["Summer S'mores","Dessert",13],["Eversweet Cornucopia","Dessert",13],["Princely Baklava","Dessert",14],["Platinum Strudel","Dessert",14],["Starberry Pie","Dessert",14],["Chocodragon Summit","Dessert",15],["Obsidian Lava Cake","Dessert",15],["Krampus Cookies","Dessert",15],["Glörkberry Parfait","Dessert",16],["Poisoned Apple Pie","Dessert",16],["Gleaming Aura","Aurasong",3],["Aura of Rains","Aurasong",4],["Aura of Quakes","Aurasong",5],["Aura of Growth","Aurasong",6],["Aura of Flames","Aurasong",7],["Aura of Sands","Aurasong",7],["Aura of Malice","Aurasong",8],["Aura of Sparks","Aurasong",9],["Aura of Winds","Aurasong",10],["Aura of Love","Aurasong",11],["Fate of Jumanji","Aurasong",11],["Aura of Power","Aurasong",12],["Prismatic Aura","Aurasong",13],["Aura of Wonder","Aurasong",13],["Aura of Storms","Aurasong",14],["Aura of Victory","Aurasong",14],["Aura of Transmutation","Aurasong",15],["Aura of Inspiration","Aurasong",15],["Platinum Aura","Aurasong",15],["A.U.R.A. Assistant","Aurasong",15],["Aura Reactor","Aurasong",16],["Chipped Runestone","Runestone",4],["Flawed Runestone","Runestone",7],["Chiseled Runestone","Runestone",9],["Perfect Runestone","Runestone",12],["Supreme Runestone","Runestone",14],["Lesser Moonstone","Moonstone",4],["Superior Moonstone","Moonstone",7],["Greater Moonstone","Moonstone",10],["Perfect Moonstone","Moonstone",12],["Supreme Moonstone","Moonstone",14]],"ench":[["Ember Element","Element",4],["Flame Element","Element",7],["Blaze Element","Element",9],["Inferno Element","Element",12],["Blistering Element","Element",14],["Bubble Element","Element",4],["Tide Element","Element",7],["Flood Element","Element",9],["Torrent Element","Element",12],["Maelstrom Element","Element",14],["Breeze Element","Element",4],["Gale Element","Element",7],["Tempest Element","Element",9],["Hurricane Element","Element",12],["Tornado Element","Element",14],["Nature Element","Element",4],["Wild Element","Element",7],["Primal Element","Element",9],["Primeval Element","Element",12],["Gaia Element","Element",14],["Light Element","Element",4],["Holy Element","Element",7],["Sacred Element","Element",9],["Divine Element","Element",12],["Apotheosis Element","Element",14],["Corrupted Element","Element",4],["Unholy Element","Element",7],["Nightmare Element","Element",9],["Abyssal Element","Element",12],["Oblivion Element","Element",14],["Luxurious Element","Element",5],["Opulent Element","Element",10],["Platinum Element","Element",14],["Fresh Spirit","Spirit",4],["Ram Spirit","Spirit",4],["Wolf Spirit","Spirit",4],["Ox Spirit","Spirit",4],["Eagle Spirit","Spirit",4],["Viper Spirit","Spirit",4],["Cat Spirit","Spirit",4],["Bunny Spirit","Spirit",4],["Goose Spirit","Spirit",4],["Xolotl Spirit","Spirit",5],["Rhino Spirit","Spirit",7],["Owl Spirit","Spirit",7],["Armadillo Spirit","Spirit",7],["Lizard Spirit","Spirit",7],["Horse Spirit","Spirit",7],["Hippo Spirit","Spirit",7],["Squirrel Spirit","Spirit",7],["Shark Spirit","Spirit",9],["Walrus Spirit","Spirit",9],["Lion Spirit","Spirit",9],["Bear Spirit","Spirit",9],["Mammoth Spirit","Spirit",9],["Dinosaur Spirit","Spirit",9],["Mundra's Spirit","Spirit",9],["Tiger Spirit","Spirit",9],["Quetzalcoatl Spirit","Spirit",10],["Phoenix Spirit","Spirit",12],["Hydra Spirit","Spirit",12],["Tarrasque Spirit","Spirit",12],["Carbuncle Spirit","Spirit",12],["Chimera Spirit","Spirit",12],["Kraken Spirit","Spirit",12],["Christmas Spirit","Spirit",12],["Krampus Spirit","Spirit",12],["Kirin Spirit","Spirit",12],["Spirit Spirit","Spirit",13],["Behemoth Spirit","Spirit",14],["Ouroboros Spirit","Spirit",14],["Bahamut Spirit","Spirit",14],["Leviathan Spirit","Spirit",14],["Griffin Spirit","Spirit",14],["Titan Spirit","Spirit",14],["Ancestor Spirit","Spirit",14],["Tomb-Bound Spirit","Spirit",16]]};
 const CHEST_GROUPS = [
   { label: "一般寶箱", items: ["Wooden Chest","Frozen Chest","Slimy Chest","Limestone Chest","Ancient Chest","Timeworn Chest","Forsaken Chest","Sunken Chest","Bleak Chest","Molten Chest","Void Chest","Divine Chest","Prehistoric Chest","Otherworldly Chest"] },
   { label: "特殊寶箱", items: ["Luxurious Chest","Opulent Chest","Platinum Chest","Pearlescent Chest"] }
 ];
 const CHESTS = CHEST_GROUPS.flatMap(g => g.items);
-const KEY = "chestMarket.v1";
-const SIDE = { buy: "買入", sell: "賣出" };
-const CUR = { gold: "Gold", gem: "Gem" };
+const ENCH = DATA.ench;   // [name, "Element"|"Spirit", tier]
+const EQUIP = DATA.equip; // [name, type, tier]
+const INFO = {};          // name -> {type, tier}
+ENCH.forEach(([n,k,t]) => INFO[n] = { type:k, tier:t });
+EQUIP.forEach(([n,ty,t]) => INFO[n] = { type:ty, tier:t });
+const ITEMSET = { chest:new Set(CHESTS), ench:new Set(ENCH.map(e=>e[0])), equip:new Set(EQUIP.map(e=>e[0])) };
+const TAB_NAME = { chest:"寶箱", ench:"元素・靈魂", equip:"裝備" };
 
-let records = load();
+const KEY = "chestMarket.v1", STAR_KEY = "chestMarket.stars", PREF_KEY = "chestMarket.prefs";
+const SIDE = { buy:"買入", sell:"賣出" };
+const CUR = { gold:"Gold", gem:"Gem" };
+const QUAL = { normal:"Normal", superior:"Superior", flawless:"Flawless", epic:"Epic", legendary:"Legendary" };
 
-function load(){
-  try { const r = JSON.parse(localStorage.getItem(KEY) || "[]"); return Array.isArray(r) ? r : []; }
-  catch(e){ return []; }
+// ---------- storage ----------
+function readJSON(k, d){ try { const v = JSON.parse(localStorage.getItem(k)); return v == null ? d : v; } catch(e){ return d; } }
+function writeJSON(k, v){ try { localStorage.setItem(k, JSON.stringify(v)); return true; } catch(e){ flash("無法儲存到瀏覽器，請記得匯出備份。", true); return false; } }
+// 舊版只有寶箱紀錄（欄位 chest），轉成新格式
+function normalize(r){
+  if(!r) return null;
+  if(!r.cat && r.chest){ r = { ...r, cat:"chest", item:r.chest }; delete r.chest; }
+  if(r.cat === "chest") r.q = null;
+  return r;
 }
-function save(){
-  try { localStorage.setItem(KEY, JSON.stringify(records)); return true; }
-  catch(e){ flash("無法儲存到瀏覽器，請記得匯出備份。", true); return false; }
-}
+let records = (readJSON(KEY, []) || []).map(normalize).filter(Boolean);
+let stars = readJSON(STAR_KEY, { ench:[], equip:[] });
+const save = () => writeJSON(KEY, records);
+const saveStars = () => writeJSON(STAR_KEY, stars);
 
 // ---------- helpers ----------
 const $ = id => document.getElementById(id);
 const pad = n => String(n).padStart(2, "0");
+const esc = s => String(s).replace(/[&<>"']/g, c => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c]));
 const UNITS = { k:1e3, m:1e6, g:1e9, b:1e9, t:1e12 };
 function parsePrice(s, unit){
   s = String(s).trim().toLowerCase().replace(/[,\s]/g, "");
@@ -186,15 +262,9 @@ function compact(n){
   if(n >= 1e3) return +(n/1e3).toFixed(1) + "k";
   return String(n);
 }
-// ts 格式：YYYY-MM-DDTHH
 const showTs = ts => ts.slice(0,10) + " " + ts.slice(11,13) + ":00";
 function nowTs(){ const d = new Date(); return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}`; }
-function flash(t, bad){ const m = $("msg"); m.textContent = t; m.style.color = bad ? "var(--danger)" : "var(--buy)"; clearTimeout(flash.t); flash.t = setTimeout(()=> m.textContent = "", 3500); }
-
-function fillChestSelect(sel, withAll){
-  sel.innerHTML = (withAll ? '<option value="">全部寶箱</option>' : "") +
-    CHEST_GROUPS.map(g => `<optgroup label="${g.label}">` + g.items.map(c => `<option>${c}</option>`).join("") + "</optgroup>").join("");
-}
+function flash(t, bad){ const m = $("msg"); m.textContent = t; m.style.color = bad ? "var(--danger)" : "var(--buy)"; clearTimeout(flash.t); flash.t = setTimeout(() => m.textContent = "", 3500); }
 function segValue(id){ return $(id).querySelector("button.on").dataset.v; }
 function bindSeg(id, onChange){
   $(id).addEventListener("click", e => {
@@ -205,9 +275,22 @@ function bindSeg(id, onChange){
   });
 }
 function setSeg(id, v){ $(id).querySelectorAll("button").forEach(x => x.classList.toggle("on", x.dataset.v === v)); }
+const qTag = q => q ? `<span class="tag q-${q}">${QUAL[q]}</span>` : "";
+const byTsDesc = (a,b) => a.ts < b.ts ? 1 : a.ts > b.ts ? -1 : (a.id < b.id ? 1 : -1);
+const byTsAsc = (a,b) => -byTsDesc(a,b);
 
-function subset(chest, side, cur){
-  return records.filter(r => r.chest === chest && r.side === side && r.cur === cur);
+// ---------- state ----------
+let tab = "chest";
+const sel = {
+  chest: { item: CHESTS[0], q: null },
+  ench:  { item: ENCH[0][0], q: "normal" },
+  equip: { item: null, q: "normal" }
+};
+const cur = () => sel[tab];
+const isStar = (t, item) => (stars[t] || []).includes(item);
+
+function subset(t, item, q, side, c){
+  return records.filter(r => r.cat === t && r.item === item && (r.q || null) === (q || null) && r.side === side && r.cur === c);
 }
 function summarize(list){
   if(!list.length) return null;
@@ -215,74 +298,194 @@ function summarize(list){
   for(const r of list){
     if(r.price > hi.price || (r.price === hi.price && r.ts > hi.ts)) hi = r;
     if(r.price < lo.price || (r.price === lo.price && r.ts > lo.ts)) lo = r;
-    if(r.ts > last.ts || (r.ts === last.ts && r.id > last.id)) last = r;
+    if(byTsDesc(r, last) < 0) last = r;
   }
   return { hi, lo, last, n: list.length };
 }
 
+// ---------- 分頁 ----------
+function setTab(t){
+  tab = t;
+  document.querySelectorAll("#tabs button").forEach(b => b.classList.toggle("on", b.dataset.t === t));
+  document.querySelectorAll("[data-for]").forEach(el => el.classList.toggle("hide", el.dataset.for !== t));
+  $("qWrap").classList.toggle("hide", t === "chest");
+  $("oStarWrap").classList.toggle("hide", t === "chest");
+  if(t !== "chest") setSeg("fQ", cur().q);
+  writeJSON(PREF_KEY, { tab: t });
+  syncItemUI(); renderAll();
+}
+
+// ---------- 物品選擇 ----------
+function initSelectors(){
+  $("selChest").innerHTML = CHEST_GROUPS.map(g => `<optgroup label="${g.label}">` + g.items.map(c => `<option>${c}</option>`).join("") + "</optgroup>").join("");
+  $("selChest").onchange = () => { sel.chest.item = $("selChest").value; renderAll(); };
+
+  const grp = k => ENCH.filter(e => e[1] === k).map(([n,,t]) => `<option value="${esc(n)}">T${t}　${esc(n)}</option>`).join("");
+  $("selEnch").innerHTML = `<optgroup label="元素 Element">${grp("Element")}</optgroup><optgroup label="靈魂 Spirit">${grp("Spirit")}</optgroup>`;
+  $("selEnch").onchange = () => { sel.ench.item = $("selEnch").value; syncItemUI(); renderAll(); };
+
+  const types = [...new Set(EQUIP.map(e => e[1]))];
+  $("fType").innerHTML += types.map(t => `<option>${esc(t)}</option>`).join("");
+  const tiers = [...new Set(EQUIP.map(e => e[2]))].sort((a,b) => a-b);
+  $("fTier").innerHTML += tiers.map(t => `<option value="${t}">T${t}</option>`).join("");
+  $("fType").onchange = $("fTier").onchange = () => { renderOverview(); if(document.activeElement === $("pk")) openPicker(); };
+
+  $("starEnch").onclick = () => toggleStar("ench");
+  $("starEquip").onclick = () => toggleStar("equip");
+  bindSeg("fQ", v => { cur().q = v; renderAll(); });
+  initPicker();
+}
+function syncItemUI(){
+  if(tab === "chest") $("selChest").value = sel.chest.item;
+  if(tab === "ench") $("selEnch").value = sel.ench.item;
+  if(tab === "equip") $("pk").value = sel.equip.item || "";
+  ["ench","equip"].forEach(t => {
+    const b = $(t === "ench" ? "starEnch" : "starEquip"), on = sel[t].item && isStar(t, sel[t].item);
+    b.classList.toggle("on", !!on); b.textContent = on ? "★" : "☆";
+  });
+}
+function toggleStar(t){
+  const item = sel[t].item; if(!item){ flash("請先選擇物品。", true); return; }
+  const list = stars[t] || (stars[t] = []);
+  const i = list.indexOf(item);
+  if(i >= 0) list.splice(i, 1); else list.push(item);
+  saveStars(); syncItemUI(); renderOverview();
+}
+function selectItem(t, item, q){
+  sel[t].item = item;
+  if(q && t !== "chest"){ sel[t].q = q; setSeg("fQ", q); }
+  syncItemUI(); renderAll();
+}
+
+// 裝備搜尋
+let pkIdx = -1, pkItems = [];
+function equipMatches(query){
+  const type = $("fType").value, tier = $("fTier").value;
+  const toks = query.toLowerCase().split(/\s+/).filter(Boolean);
+  let list = EQUIP.filter(([n,ty,t]) => (!type || ty === type) && (!tier || t == tier) && toks.every(k => n.toLowerCase().includes(k)));
+  if(!toks.length && !type && !tier){
+    // 沒輸入時：先列關注，再列最近記錄過的
+    const recent = [...new Set(records.filter(r => r.cat === "equip").sort(byTsDesc).map(r => r.item))];
+    const order = [...new Set([...(stars.equip || []), ...recent])];
+    list = order.map(n => EQUIP.find(e => e[0] === n)).filter(Boolean);
+  }
+  return list.slice(0, 60);
+}
+function openPicker(){
+  pkItems = equipMatches($("pk").value);
+  pkIdx = -1;
+  const empty = !$("pk").value.trim() && !$("fType").value && !$("fTier").value;
+  $("pkList").innerHTML = pkItems.length
+    ? pkItems.map(([n,ty,t], i) => `<div data-i="${i}"><span>${isStar("equip", n) ? "★ " : ""}${esc(n)}</span><small>${esc(ty)} · T${t}</small></div>`).join("")
+    : `<div class="none">${empty ? "輸入名稱開始搜尋，或用下方類型／階級篩選。" : "找不到符合的裝備。"}</div>`;
+  $("pkList").classList.add("open");
+}
+function closePicker(){ $("pkList").classList.remove("open"); }
+function pickAt(i){
+  const it = pkItems[i]; if(!it) return;
+  closePicker(); $("pk").blur(); selectItem("equip", it[0]);
+}
+function initPicker(){
+  $("pk").addEventListener("focus", () => { $("pk").select(); openPicker(); });
+  $("pk").addEventListener("input", openPicker);
+  $("pk").addEventListener("keydown", e => {
+    const rows = $("pkList").querySelectorAll("div[data-i]");
+    if(e.key === "ArrowDown" || e.key === "ArrowUp"){
+      e.preventDefault(); if(!rows.length) return;
+      pkIdx = (pkIdx + (e.key === "ArrowDown" ? 1 : -1) + rows.length) % rows.length;
+      rows.forEach((r,i) => r.classList.toggle("act", i === pkIdx));
+      rows[pkIdx].scrollIntoView({ block:"nearest" });
+    } else if(e.key === "Enter"){ e.preventDefault(); pickAt(pkIdx >= 0 ? pkIdx : 0); }
+    else if(e.key === "Escape"){ closePicker(); $("pk").blur(); }
+  });
+  $("pk").addEventListener("blur", () => setTimeout(() => { closePicker(); $("pk").value = sel.equip.item || ""; }, 150));
+  $("pkList").addEventListener("mousedown", e => e.preventDefault());
+  $("pkList").addEventListener("click", e => { const d = e.target.closest("div[data-i]"); if(d) pickAt(+d.dataset.i); });
+}
+
 // ---------- form ----------
 function initForm(){
-  fillChestSelect($("fChest"));
   $("fHour").innerHTML = Array.from({length:24}, (_,h) => `<option value="${pad(h)}">${pad(h)}:00</option>`).join("");
   setNow();
-  bindSeg("fSide"); bindSeg("fCur");
+  bindSeg("fSide"); bindSeg("fCur", updateUnit); updateUnit();
   $("nowBtn").onclick = setNow;
   $("addBtn").onclick = addRecord;
   $("fPrice").addEventListener("keydown", e => { if(e.key === "Enter") addRecord(); });
-  $("fChest").onchange = () => { $("vChest").value = $("fChest").value; renderView(); };
 }
 function setNow(){ const t = nowTs(); $("fDate").value = t.slice(0,10); $("fHour").value = t.slice(11,13); }
-
+// Gem 價格不超過 1000，不需要單位
+function updateUnit(){
+  const gem = segValue("fCur") === "gem";
+  $("fUnit").style.display = gem ? "none" : "";
+  $("fPrice").placeholder = gem ? "例：150" : "例：1.25";
+  $("fPrice").inputMode = gem ? "numeric" : "decimal";
+  $("unitHint").style.display = gem ? "none" : "";
+}
 function addRecord(){
-  const price = parsePrice($("fPrice").value, Number($("fUnit").value));
+  const s = cur();
+  if(!s.item){ flash("請先選擇裝備。", true); $("pk").focus(); return; }
+  const isGem = segValue("fCur") === "gem";
+  const price = parsePrice($("fPrice").value, isGem ? 1 : Number($("fUnit").value));
   if(!(price > 0)){ flash("請輸入有效的價格。", true); $("fPrice").focus(); return; }
   if(!$("fDate").value){ flash("請選擇日期。", true); return; }
   const r = {
     id: Date.now() + Math.random().toString(36).slice(2,6),
     ts: $("fDate").value + "T" + $("fHour").value,
-    side: segValue("fSide"), chest: $("fChest").value, cur: segValue("fCur"), price
+    cat: tab, item: s.item, q: tab === "chest" ? null : s.q,
+    side: segValue("fSide"), cur: segValue("fCur"), price
   };
-  const before = summarize(subset(r.chest, r.side, r.cur));
+  const before = summarize(subset(r.cat, r.item, r.q, r.side, r.cur));
   records.push(r); save();
   let note = "";
   if(before){
     if(price > before.hi.price) note = "（新高！）";
     else if(price < before.lo.price) note = "（新低！）";
   }
-  flash(`已記錄：${SIDE[r.side]} ${r.chest} ${fmt(price)} ${CUR[r.cur]}${note}`);
+  flash(`已記錄：${SIDE[r.side]} ${r.item}${r.q ? " " + QUAL[r.q] : ""} ${fmt(price)} ${CUR[r.cur]}${note}`);
   $("fPrice").value = "";
-  $("vChest").value = r.chest; setSeg("cSide", r.side); setSeg("cCur", r.cur);
+  setSeg("cSide", r.side); setSeg("cCur", r.cur); setSeg("oSide", r.side); setSeg("oCur", r.cur);
   renderAll();
 }
 
-// ---------- 單一寶箱 ----------
+// ---------- 行情 ----------
 function renderView(){
-  const chest = $("vChest").value;
-  $("stats").innerHTML = ["buy","sell"].flatMap(side => ["gold","gem"].map(cur => {
-    const s = summarize(subset(chest, side, cur));
-    const head = `<div class="t"><span class="tag ${side}">${SIDE[side]}</span><span class="tag ${cur}">${CUR[cur]}</span></div>`;
-    if(!s) return `<div class="stat">${head}<div class="empty">尚無紀錄</div></div>`;
+  const s = cur();
+  if(!s.item){
+    $("vTitle").innerHTML = "行情";
+    $("vBody").innerHTML = `<div class="empty">在上方搜尋並選擇一件裝備，就會顯示它的最高、最低價格。</div>`;
+    return;
+  }
+  if(!$("stats")) restoreViewBody();
+  const info = INFO[s.item];
+  $("vTitle").innerHTML = `<span class="selname">${esc(s.item)}</span> ${qTag(s.q)}${info ? ` <small style="color:var(--muted);font-weight:400">${esc(info.type)} · T${info.tier}</small>` : ""}`;
+  $("stats").innerHTML = ["buy","sell"].flatMap(side => ["gold","gem"].map(c => {
+    const st = summarize(subset(tab, s.item, s.q, side, c));
+    const head = `<div class="t"><span class="tag ${side}">${SIDE[side]}</span><span class="tag ${c}">${CUR[c]}</span></div>`;
+    if(!st) return `<div class="stat">${head}<div class="empty">尚無紀錄</div></div>`;
     return `<div class="stat">${head}
-      <div class="kv"><span class="hi">最高</span><span><b>${fmt(s.hi.price)}</b> <span class="when">${showTs(s.hi.ts)}</span></span></div>
-      <div class="kv"><span class="lo">最低</span><span><b>${fmt(s.lo.price)}</b> <span class="when">${showTs(s.lo.ts)}</span></span></div>
-      <div class="kv"><span>最新</span><span><b>${fmt(s.last.price)}</b> <span class="when">${showTs(s.last.ts)}</span></span></div>
-      <div class="kv"><span>筆數</span><b>${s.n}</b></div></div>`;
+      <div class="kv"><span class="hi">最高</span><span><b>${fmt(st.hi.price)}</b> <span class="when">${showTs(st.hi.ts)}</span></span></div>
+      <div class="kv"><span class="lo">最低</span><span><b>${fmt(st.lo.price)}</b> <span class="when">${showTs(st.lo.ts)}</span></span></div>
+      <div class="kv"><span>最新</span><span><b>${fmt(st.last.price)}</b> <span class="when">${showTs(st.last.ts)}</span></span></div>
+      <div class="kv"><span>筆數</span><b>${st.n}</b></div></div>`;
   })).join("");
   renderChart();
 }
+let viewBodyHTML;
+function restoreViewBody(){ $("vBody").innerHTML = viewBodyHTML; bindSeg("cSide", renderChart); bindSeg("cCur", renderChart); }
 
 function renderChart(){
-  const chest = $("vChest").value, side = segValue("cSide"), cur = segValue("cCur");
-  const list = subset(chest, side, cur).slice().sort((a,b) => a.ts < b.ts ? -1 : a.ts > b.ts ? 1 : (a.id < b.id ? -1 : 1));
+  const s = cur(); if(!s.item || !$("chart")) return;
+  const c = segValue("cCur");
+  const list = subset(tab, s.item, s.q, segValue("cSide"), c).sort(byTsAsc);
   const box = $("chart");
   if(list.length < 2){ box.innerHTML = `<div class="empty">${list.length ? "再多一筆紀錄就能畫出價格走勢。" : "這個組合還沒有紀錄。"}</div>`; return; }
   const W = 640, H = 220, L = 56, R = 12, T = 12, B = 30;
   const prices = list.map(r => r.price);
   let min = Math.min(...prices), max = Math.max(...prices);
   if(min === max){ min *= 0.95; max *= 1.05; }
-  const x = i => L + (W - L - R) * (list.length === 1 ? 0.5 : i / (list.length - 1));
+  const x = i => L + (W - L - R) * (i / (list.length - 1));
   const y = p => T + (H - T - B) * (1 - (p - min) / (max - min));
-  const color = cur === "gold" ? "var(--gold)" : "var(--gem)";
+  const color = c === "gold" ? "var(--gold)" : "var(--gem)";
   const pts = list.map((r,i) => `${x(i).toFixed(1)},${y(r.price).toFixed(1)}`).join(" ");
   const grid = [0, .5, 1].map(f => { const p = min + (max - min) * f, yy = y(p);
     return `<line x1="${L}" x2="${W-R}" y1="${yy}" y2="${yy}" stroke="var(--line)" stroke-dasharray="3 4"/><text x="${L-6}" y="${yy+4}" text-anchor="end">${compact(Math.round(p))}</text>`; }).join("");
@@ -293,27 +496,54 @@ function renderChart(){
 
 // ---------- 總覽 ----------
 function renderOverview(){
-  const side = segValue("oSide"), cur = segValue("oCur");
-  const rows = CHESTS.map(c => {
-    const s = summarize(subset(c, side, cur));
-    if(!s) return `<tr class="click" data-c="${c}"><td>${c}</td><td colspan="4" class="empty" style="text-align:right">—</td></tr>`;
-    return `<tr class="click" data-c="${c}"><td>${c}</td>
-      <td class="lo">${fmt(s.lo.price)}<span class="when">${showTs(s.lo.ts)}</span></td>
-      <td class="hi">${fmt(s.hi.price)}<span class="when">${showTs(s.hi.ts)}</span></td>
-      <td>${fmt(s.last.price)}<span class="when">${showTs(s.last.ts)}</span></td>
-      <td>${s.n}</td></tr>`;
+  const side = segValue("oSide"), c = segValue("oCur");
+  $("oTitle").textContent = TAB_NAME[tab] + "總覽";
+  let rows = [];
+  if(tab === "chest"){
+    rows = CHESTS.map(item => ({ item, q:null }));
+    $("oHint").textContent = "點一列可切換到該寶箱的行情。";
+  } else {
+    // 只列有紀錄的物品＋品質組合；關注但還沒紀錄的也列出
+    const seen = new Map();
+    records.filter(r => r.cat === tab).forEach(r => seen.set(r.item + "|" + r.q, { item:r.item, q:r.q }));
+    rows = [...seen.values()];
+    (stars[tab] || []).forEach(item => { if(!rows.some(x => x.item === item)) rows.push({ item, q:null, placeholder:true }); });
+    if(tab === "equip"){
+      const type = $("fType").value, tier = $("fTier").value;
+      rows = rows.filter(x => { const i = INFO[x.item] || {}; return (!type || i.type === type) && (!tier || i.tier == tier); });
+    }
+    if($("oStar").checked) rows = rows.filter(x => isStar(tab, x.item));
+    $("oHint").textContent = "只列出記錄過或加了關注（★）的項目" + (tab === "equip" ? "，並套用上方的類型／階級篩選" : "") + "。點一列可切換過去。";
+  }
+  const data = rows.map(x => ({ ...x, s: x.placeholder ? null : summarize(subset(tab, x.item, x.q, side, c)) }));
+  if(tab !== "chest"){
+    const lastAny = x => records.filter(r => r.cat === tab && r.item === x.item && (r.q || null) === (x.q || null)).reduce((m,r) => r.ts > m ? r.ts : m, "");
+    data.forEach(x => x.lt = lastAny(x));
+    data.sort((a,b) => (isStar(tab,b.item) - isStar(tab,a.item)) || (a.lt < b.lt ? 1 : a.lt > b.lt ? -1 : 0));
+  }
+  if(!data.length){ $("overview").innerHTML = `<tbody><tr><td class="empty">還沒有紀錄。</td></tr></tbody>`; return; }
+  const body = data.map(x => {
+    const info = INFO[x.item];
+    const name = `${isStar(tab, x.item) ? "★ " : ""}${esc(x.item)} ${qTag(x.q)}` + (tab !== "chest" && info ? `<span class="sub">${esc(info.type)} · T${info.tier}</span>` : "");
+    const attrs = `class="click" data-i="${esc(x.item)}" data-q="${x.q || ""}"`;
+    if(!x.s) return `<tr ${attrs}><td>${name}</td><td colspan="4" class="empty">—</td></tr>`;
+    return `<tr ${attrs}><td>${name}</td>
+      <td class="lo">${fmt(x.s.lo.price)}<span class="when">${showTs(x.s.lo.ts)}</span></td>
+      <td class="hi">${fmt(x.s.hi.price)}<span class="when">${showTs(x.s.hi.ts)}</span></td>
+      <td>${fmt(x.s.last.price)}<span class="when">${showTs(x.s.last.ts)}</span></td>
+      <td>${x.s.n}</td></tr>`;
   }).join("");
-  $("overview").innerHTML = `<thead><tr><th>寶箱</th><th>最低</th><th>最高</th><th>最新</th><th>筆數</th></tr></thead><tbody>${rows}</tbody>`;
+  $("overview").innerHTML = `<thead><tr><th>${tab === "chest" ? "寶箱" : "物品"}</th><th>最低</th><th>最高</th><th>最新</th><th>筆數</th></tr></thead><tbody>${body}</tbody>`;
 }
 
 // ---------- 紀錄 ----------
 function renderLog(){
-  const f = $("lChest").value;
-  const list = records.filter(r => !f || r.chest === f).sort((a,b) => a.ts < b.ts ? 1 : a.ts > b.ts ? -1 : (a.id < b.id ? 1 : -1));
+  const s = cur(), only = $("lFilter").value === "sel";
+  const list = records.filter(r => r.cat === tab && (!only || (r.item === s.item && (r.q || null) === (s.q || null)))).sort(byTsDesc);
   $("log").innerHTML = list.length ? list.slice(0, 300).map(r => `<li>
       <span class="when">${showTs(r.ts)}</span>
       <span class="tag ${r.side}">${SIDE[r.side]}</span>
-      <span>${r.chest}</span>
+      <span>${esc(r.item)}</span>${qTag(r.q)}
       <span class="p" style="color:var(--${r.cur})">${fmt(r.price)} ${CUR[r.cur]}</span>
       <button class="x" data-id="${r.id}" title="刪除">✕</button></li>`).join("")
     : `<li class="empty">尚無紀錄</li>`;
@@ -323,11 +553,15 @@ function renderAll(){ renderView(); renderOverview(); renderLog(); }
 
 // ---------- 備份 ----------
 function exportJson(){
-  const blob = new Blob([JSON.stringify({ app: "chest-market", version: 1, exported: new Date().toISOString(), records }, null, 2)], { type: "application/json" });
+  const blob = new Blob([JSON.stringify({ app:"chest-market", version:2, exported:new Date().toISOString(), records, stars }, null, 2)], { type:"application/json" });
   const a = document.createElement("a");
   a.href = URL.createObjectURL(blob);
-  a.download = `chest_market_${nowTs().replace("T","_")}.json`;
+  a.download = `market_ledger_${nowTs().replace("T","_")}.json`;
   a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+}
+function validRecord(r){
+  return r && r.id && ITEMSET[r.cat] && ITEMSET[r.cat].has(r.item) && (r.cat === "chest" ? r.q === null : !!QUAL[r.q])
+    && SIDE[r.side] && CUR[r.cur] && r.price > 0 && /^\d{4}-\d{2}-\d{2}T\d{2}$/.test(r.ts);
 }
 function importJson(file){
   const rd = new FileReader();
@@ -336,10 +570,12 @@ function importJson(file){
       const d = JSON.parse(rd.result);
       const arr = Array.isArray(d) ? d : d.records;
       if(!Array.isArray(arr)) throw 0;
-      const ok = arr.filter(r => r && r.id && CHESTS.includes(r.chest) && SIDE[r.side] && CUR[r.cur] && r.price > 0 && /^\d{4}-\d{2}-\d{2}T\d{2}$/.test(r.ts));
+      const ok = arr.map(normalize).filter(validRecord);
       const ids = new Set(records.map(r => r.id));
       const add = ok.filter(r => !ids.has(r.id));
-      records = records.concat(add); save(); renderAll();
+      records = records.concat(add); save();
+      if(d.stars) ["ench","equip"].forEach(t => { stars[t] = [...new Set([...(stars[t] || []), ...(d.stars[t] || []).filter(n => ITEMSET[t].has(n))])]; });
+      saveStars(); syncItemUI(); renderAll();
       alert(`匯入完成：新增 ${add.length} 筆，略過重複或無效 ${arr.length - add.length} 筆。`);
     }catch(e){ alert("檔案格式不正確，無法匯入。"); }
   };
@@ -347,23 +583,24 @@ function importJson(file){
 }
 
 // ---------- init ----------
+viewBodyHTML = $("vBody").innerHTML;
+initSelectors();
 initForm();
-fillChestSelect($("vChest"));
-fillChestSelect($("lChest"), true);
 bindSeg("cSide", renderChart); bindSeg("cCur", renderChart);
 bindSeg("oSide", renderOverview); bindSeg("oCur", renderOverview);
-$("vChest").onchange = renderView;
-$("lChest").onchange = renderLog;
+$("oStar").onchange = renderOverview;
+$("lFilter").onchange = renderLog;
+$("tabs").addEventListener("click", e => { const b = e.target.closest("button[data-t]"); if(b) setTab(b.dataset.t); });
 $("overview").addEventListener("click", e => {
-  const tr = e.target.closest("tr[data-c]"); if(!tr) return;
-  $("vChest").value = tr.dataset.c; $("fChest").value = tr.dataset.c;
+  const tr = e.target.closest("tr[data-i]"); if(!tr) return;
   setSeg("cSide", segValue("oSide")); setSeg("cCur", segValue("oCur"));
-  renderView(); $("vChest").scrollIntoView({ behavior: "smooth", block: "center" });
+  selectItem(tab, tr.dataset.i, tr.dataset.q || null);
+  $("vTitle").scrollIntoView({ behavior:"smooth", block:"start" });
 });
 $("log").addEventListener("click", e => {
   const b = e.target.closest(".x"); if(!b) return;
   const r = records.find(x => x.id === b.dataset.id);
-  if(r && confirm(`刪除這筆紀錄？\n${showTs(r.ts)} ${SIDE[r.side]} ${r.chest} ${fmt(r.price)} ${CUR[r.cur]}`)){
+  if(r && confirm(`刪除這筆紀錄？\n${showTs(r.ts)} ${SIDE[r.side]} ${r.item}${r.q ? " " + QUAL[r.q] : ""} ${fmt(r.price)} ${CUR[r.cur]}`)){
     records = records.filter(x => x.id !== r.id); save(); renderAll();
   }
 });
@@ -371,9 +608,10 @@ $("expBtn").onclick = exportJson;
 $("impBtn").onclick = () => $("impFile").click();
 $("impFile").onchange = e => { if(e.target.files[0]) importJson(e.target.files[0]); e.target.value = ""; };
 $("clrBtn").onclick = () => {
-  if(records.length && confirm(`確定要清除全部 ${records.length} 筆紀錄？建議先匯出備份。`)){ records = []; save(); renderAll(); }
+  if(records.length && confirm(`確定要清除全部 ${records.length} 筆紀錄（三個分頁）？建議先匯出備份。`)){ records = []; save(); renderAll(); }
 };
-renderAll();
+save(); // 寫回轉換後的舊紀錄
+setTab((readJSON(PREF_KEY, {}) || {}).tab in TAB_NAME ? readJSON(PREF_KEY, {}).tab : "chest");
 </script>
 </body>
 </html>
