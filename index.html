@@ -81,6 +81,9 @@ tr.click{cursor:pointer}tr.click:hover{background:var(--panel2)}
 .star{background:none;border:1px solid var(--line);border-radius:7px;color:var(--muted);cursor:pointer;font-size:18px;padding:4px 10px;line-height:1;flex:0 0 auto}
 .star.on{color:var(--gold);border-color:var(--gold)}
 svg text{fill:var(--muted);font-size:11px}
+#chart .hit{cursor:pointer}
+.cinfo{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 10px;margin-top:6px;padding:8px 10px;background:var(--panel2);border:1px solid var(--line);border-radius:7px;font-size:13px;font-variant-numeric:tabular-nums}
+.cinfo b{font-size:15px}.cinfo .when{color:var(--muted);font-size:12px}
 .foot{display:flex;gap:8px;flex-wrap:wrap}
 .picker{position:relative}
 .pklist{position:absolute;left:0;right:0;top:100%;margin-top:4px;background:var(--panel2);border:1px solid var(--line);border-radius:8px;max-height:320px;overflow-y:auto;z-index:20;display:none;box-shadow:0 8px 24px rgba(0,0,0,.5)}
@@ -489,9 +492,36 @@ function renderChart(){
   const pts = list.map((r,i) => `${x(i).toFixed(1)},${y(r.price).toFixed(1)}`).join(" ");
   const grid = [0, .5, 1].map(f => { const p = min + (max - min) * f, yy = y(p);
     return `<line x1="${L}" x2="${W-R}" y1="${yy}" y2="${yy}" stroke="var(--line)" stroke-dasharray="3 4"/><text x="${L-6}" y="${yy+4}" text-anchor="end">${compact(Math.round(p))}</text>`; }).join("");
-  const dots = list.map((r,i) => `<circle cx="${x(i)}" cy="${y(r.price)}" r="3.5" fill="${color}"><title>${showTs(r.ts)}  ${fmt(r.price)}</title></circle>`).join("");
+  const dots = list.map((r,i) => `<circle cx="${x(i)}" cy="${y(r.price)}" r="3.5" fill="${color}"/>`).join("");
+  // 透明的大圓當作點擊範圍，手機上比較好點
+  const hits = list.map((r,i) => `<circle class="hit" data-i="${i}" cx="${x(i)}" cy="${y(r.price)}" r="14" fill="transparent"/>`).join("");
   const labels = [0, list.length - 1].map(i => `<text x="${x(i)}" y="${H-10}" text-anchor="${i ? "end" : "start"}">${showTs(list[i].ts).slice(5)}</text>`).join("");
-  box.innerHTML = `<svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="價格走勢">${grid}<polyline points="${pts}" fill="none" stroke="${color}" stroke-width="2"/>${dots}${labels}</svg>`;
+  box.innerHTML = `<svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="價格走勢">${grid}
+    <line id="cGuide" y1="${T}" y2="${H-B}" stroke="var(--muted)" stroke-dasharray="2 3" visibility="hidden"/>
+    <polyline points="${pts}" fill="none" stroke="${color}" stroke-width="2"/>${dots}
+    <circle id="cMark" r="6.5" fill="${color}" stroke="var(--text)" stroke-width="2" visibility="hidden"/>${labels}${hits}</svg>
+    <div class="cinfo" id="cInfo"><span class="empty">點選圖上的點，可查看當時的價格與時間。</span></div>`;
+  chartState = { list, x, y, c };
+  // 切換物品或幣別後，預設選最新一筆
+  selectPoint(list.length - 1);
+}
+let chartState = null;
+function selectPoint(i){
+  const st = chartState; if(!st || !$("cInfo")) return;
+  const r = st.list[i]; if(!r) return;
+  const cx = st.x(i), cy = st.y(r.price);
+  $("cMark").setAttribute("cx", cx); $("cMark").setAttribute("cy", cy); $("cMark").setAttribute("visibility", "visible");
+  $("cGuide").setAttribute("x1", cx); $("cGuide").setAttribute("x2", cx); $("cGuide").setAttribute("visibility", "visible");
+  const prev = st.list[i - 1];
+  let diff = "";
+  if(prev){
+    const d = r.price - prev.price, pct = prev.price ? d / prev.price * 100 : 0;
+    const cls = d > 0 ? "hi" : d < 0 ? "lo" : "";
+    diff = `<span class="${cls}">比上一筆 ${d > 0 ? "+" : ""}${fmt(d)}（${d > 0 ? "+" : ""}${pct.toFixed(1)}%）</span>`;
+  }
+  $("cInfo").innerHTML = `<span class="when">${showTs(r.ts)}</span>
+    <b style="color:var(--${st.c})">${fmt(r.price)} ${CUR[st.c]}</b>${st.c === "gold" && r.price >= 1000 ? `<span class="when">（${compact(r.price)}）</span>` : ""}
+    ${diff}<span class="when" style="margin-left:auto">第 ${i + 1} / ${st.list.length} 筆</span>`;
 }
 
 // ---------- 總覽 ----------
@@ -589,6 +619,7 @@ initForm();
 bindSeg("cSide", renderChart); bindSeg("cCur", renderChart);
 bindSeg("oSide", renderOverview); bindSeg("oCur", renderOverview);
 $("oStar").onchange = renderOverview;
+document.addEventListener("click", e => { const h = e.target.closest && e.target.closest("#chart .hit"); if(h) selectPoint(+h.dataset.i); });
 $("lFilter").onchange = renderLog;
 $("tabs").addEventListener("click", e => { const b = e.target.closest("button[data-t]"); if(b) setTab(b.dataset.t); });
 $("overview").addEventListener("click", e => {
