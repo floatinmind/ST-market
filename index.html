@@ -170,7 +170,7 @@ svg text{fill:var(--muted);font-size:11px}
   <div class="row" style="margin-top:8px">
     <button class="btn ghost small" id="nowBtn" style="flex:0 0 auto">時間設為現在</button>
   </div>
-  <div class="hint">「記錄市價」：看到的市場價格。「我買下了／我賣出了」：自己實際成交的價格，另外統計，不影響市價的最高最低。</div>
+  <div class="hint">「記錄市價」：看到的市場價格。「我買下了／我賣出了」：自己實際成交的價格，另外統計；同時也會用同一個價格記一筆市價。</div>
   <div class="hint" id="unitHint">輸入數字後在右邊選單位：k = 千、m = 百萬、g = 十億、T = 兆（例如 1.25 + m = 1,250,000）。選「—」代表不加單位。</div>
   <div class="msg" id="msg"></div>
 </div>
@@ -488,20 +488,27 @@ function addRecord(kind){
     cat: tab, item: s.item, q: tab === "chest" ? null : s.q,
     side: kind, cur: segValue("fCur"), price
   };
-  if(kind !== "market") r.trade = true;
-  const mkt = subset(r.cat, r.item, r.q, "market", r.cur);
-  const before = summarize(mkt);
-  records.push(r); save();
+  const before = summarize(subset(r.cat, r.item, r.q, "market", r.cur));
   let note = "";
-  if(kind === "market" && before){
-    if(price > before.hi.price) note = "（市價新高！）";
-    else if(price < before.lo.price) note = "（市價新低！）";
+  if(kind === "market"){
+    records.push(r);
+  } else {
+    // 買下／賣出時，同一個價格也記一筆市價；兩筆用 pair 互相對應，刪除時一起刪
+    const m = { ...r };
+    r.id = m.id + "t"; r.trade = true; r.pair = m.id;
+    m.side = "market"; m.pair = r.id;
+    records.push(m, r);
+    if(before){
+      const d = price - before.last.price, pct = d / before.last.price * 100;
+      note = `（比上一筆市價 ${d > 0 ? "+" : ""}${pct.toFixed(1)}%）`;
+    }
+    note += "，並記入市價";
   }
-  if(kind !== "market" && before){
-    // 跟最新市價比較
-    const d = price - before.last.price, pct = d / before.last.price * 100;
-    note = `（比最新市價 ${d > 0 ? "+" : ""}${pct.toFixed(1)}%）`;
+  if(before){
+    if(price > before.hi.price) note += "（市價新高！）";
+    else if(price < before.lo.price) note += "（市價新低！）";
   }
+  save();
   flash(`已記錄：${SIDE[r.side]} ${r.item}${r.q ? " " + QUAL[r.q] : ""} ${fmt(price)} ${CUR[r.cur]}${note}`);
   $("fPrice").value = "";
   setSeg("cCur", r.cur); setSeg("oCur", r.cur);
@@ -599,7 +606,7 @@ function selectPoint(i){
     const k = st.mkt.indexOf(r), prev = st.mkt[k - 1];
     if(prev) diff = cmp(prev, "比上一筆市價");
   } else {
-    const m = marketAt(st.mkt, r.ts);
+    const m = marketAt(st.mkt.filter(x => x.id !== r.pair), r.ts); // 不跟自己同時記的那筆市價比
     if(m) diff = cmp(m, "比當時市價");
   }
   $("cInfo").innerHTML = `<span class="tag ${r.side}">${SIDE[r.side]}</span><span class="when">${showTs(r.ts)}</span>
@@ -764,8 +771,11 @@ $("overview").addEventListener("click", e => {
 $("log").addEventListener("click", e => {
   const b = e.target.closest(".x"); if(!b) return;
   const r = records.find(x => x.id === b.dataset.id);
-  if(r && confirm(`刪除這筆紀錄？\n${showTs(r.ts)} ${SIDE[r.side]} ${r.item}${r.q ? " " + QUAL[r.q] : ""} ${fmt(r.price)} ${CUR[r.cur]}`)){
-    records = records.filter(x => x.id !== r.id); save(); renderAll();
+  if(!r) return;
+  const p = r.pair && records.find(x => x.id === r.pair);
+  const extra = p ? `\n（同時記錄的那筆${SIDE[p.side]}也會一起刪除）` : "";
+  if(confirm(`刪除這筆紀錄？\n${showTs(r.ts)} ${SIDE[r.side]} ${r.item}${r.q ? " " + QUAL[r.q] : ""} ${fmt(r.price)} ${CUR[r.cur]}${extra}`)){
+    records = records.filter(x => x.id !== r.id && (!p || x.id !== p.id)); save(); renderAll();
   }
 });
 $("expBtn").onclick = exportJson;
