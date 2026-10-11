@@ -91,6 +91,9 @@ svg text{fill:var(--muted);font-size:11px}
 .lg-line{display:inline-block;width:14px;height:2px;background:var(--muted)}
 .lg-buy{color:var(--buy);font-style:normal}.lg-sell{color:var(--sell);font-style:normal}
 .stat.trade{border-style:dashed}
+.pager{display:flex;justify-content:center;align-items:center;gap:12px;margin-top:10px;font-size:13px;color:var(--muted)}
+.pager:empty{display:none}
+.pager button:disabled{opacity:.35;cursor:default}
 .cinfo{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 10px;margin-top:6px;padding:8px 10px;background:var(--panel2);border:1px solid var(--line);border-radius:7px;font-size:13px;font-variant-numeric:tabular-nums}
 .cinfo b{font-size:15px}.cinfo .when{color:var(--muted);font-size:12px}
 .foot{display:flex;gap:8px;flex-wrap:wrap}
@@ -204,6 +207,16 @@ svg text{fill:var(--muted);font-size:11px}
     <select id="lFilter" style="width:auto;min-width:160px"><option value="all">這個分頁全部</option><option value="sel">只看目前選擇</option></select>
   </h2>
   <ul class="log" id="log"></ul>
+  <div class="pager" id="pager"></div>
+</div>
+
+<!-- 價格大幅變動 -->
+<div class="card">
+  <h2>價格大幅變動
+    <select id="mvTh" style="width:auto"><option value="10">變動 ≥ 10%</option><option value="20" selected>變動 ≥ 20%</option><option value="30">變動 ≥ 30%</option><option value="50">變動 ≥ 50%</option></select>
+  </h2>
+  <div class="tablewrap"><table id="movers"></table></div>
+  <div class="hint">比較每個物品（含品質、幣別）最新一筆市價和它過去市價的平均，列出變動超過門檻的項目，變動大的排前面。只看目前分頁，至少要有 2 筆市價。點一列可切換過去。</div>
 </div>
 
 <!-- 資料 -->
@@ -291,7 +304,7 @@ function bindSeg(id, onChange){
     onChange && onChange(b.dataset.v);
   });
 }
-function setSeg(id, v){ $(id).querySelectorAll("button").forEach(x => x.classList.toggle("on", x.dataset.v === v)); }
+function setSeg(id, v){ if(!$(id)) return; $(id).querySelectorAll("button").forEach(x => x.classList.toggle("on", x.dataset.v === v)); }
 const qTag = q => q ? `<span class="tag q-${q}">${QUAL[q]}</span>` : "";
 const byTsDesc = (a,b) => a.ts < b.ts ? 1 : a.ts > b.ts ? -1 : (a.id < b.id ? 1 : -1);
 const byTsAsc = (a,b) => -byTsDesc(a,b);
@@ -337,6 +350,7 @@ function setTab(t){
   $("qWrap").classList.toggle("hide", t === "chest");
   $("oStarWrap").classList.toggle("hide", t === "chest");
   if(t !== "chest") setSeg("fQ", cur().q);
+  logPage = 1;
   writeJSON(PREF_KEY, { tab: t });
   syncItemUI(); renderAll();
 }
@@ -350,7 +364,12 @@ function initSelectors(){
   $("selEnch").innerHTML = `<optgroup label="元素 Element">${grp("Element")}</optgroup><optgroup label="靈魂 Spirit">${grp("Spirit")}</optgroup>`;
   $("selEnch").onchange = () => { sel.ench.item = $("selEnch").value; syncItemUI(); renderAll(); };
 
-  const types = [...new Set(EQUIP.map(e => e[1]))];
+  // 類型照使用者指定的順序，其餘（Runestone、Moonstone）排最後
+  const ORDER = ["Sword","Axe","Dagger","Mace","Spear","Bow","Wand","Staff","Gun","Crossbow","Instrument","Dual Wield","Catalyst","Scythe",
+    "Heavy Armor","Light Armor","Clothes","Helmet","Rogue Hat","Magician Hat","Mask","Gauntlets","Gloves","Heavy Footwear","Light Footwear",
+    "Herbal Medicine","Potion","Spell","Shield","Quiver","Idol","Ring","Amulet","Cloak","Familiar","Aurasong","Meal","Dessert"];
+  const all = [...new Set(EQUIP.map(e => e[1]))];
+  const types = [...ORDER.filter(t => all.includes(t)), ...all.filter(t => !ORDER.includes(t))];
   $("fType").innerHTML += types.map(t => `<option>${esc(t)}</option>`).join("");
   const tiers = [...new Set(EQUIP.map(e => e[2]))].sort((a,b) => a-b);
   $("fTier").innerHTML += tiers.map(t => `<option value="${t}">T${t}</option>`).join("");
@@ -631,10 +650,17 @@ function renderOverview(){
 }
 
 // ---------- 紀錄 ----------
+const PAGE = 20;
+let logPage = 1;
 function renderLog(){
   const s = cur(), only = $("lFilter").value === "sel";
   const list = records.filter(r => r.cat === tab && (!only || (r.item === s.item && (r.q || null) === (s.q || null)))).sort(byTsDesc);
-  $("log").innerHTML = list.length ? list.slice(0, 300).map(r => `<li>
+  const pages = Math.max(1, Math.ceil(list.length / PAGE));
+  logPage = Math.min(Math.max(1, logPage), pages);
+  $("pager").innerHTML = list.length > PAGE ? `<button class="btn ghost small" data-p="${logPage - 1}" ${logPage === 1 ? "disabled" : ""}>‹ 上一頁</button>
+    <span>第 ${logPage} / ${pages} 頁（共 ${list.length} 筆）</span>
+    <button class="btn ghost small" data-p="${logPage + 1}" ${logPage === pages ? "disabled" : ""}>下一頁 ›</button>` : "";
+  $("log").innerHTML = list.length ? list.slice((logPage - 1) * PAGE, logPage * PAGE).map(r => `<li>
       <span class="when">${showTs(r.ts)}</span>
       <span class="tag ${r.side}">${SIDE[r.side]}</span>
       <span>${esc(r.item)}</span>${qTag(r.q)}
@@ -650,7 +676,35 @@ function updatePlaceholder(){
   const f = n => gem ? fmt(n) : compact(n);
   $("fPrice").placeholder = st ? (st.n === 1 ? `市價 ${f(st.hi.price)}` : `最高 ${f(st.hi.price)}／最低 ${f(st.lo.price)}`) : (gem ? "例：150" : "例：1.25");
 }
-function renderAll(){ renderView(); renderOverview(); renderLog(); updatePlaceholder(); }
+// ---------- 價格大幅變動 ----------
+function renderMovers(){
+  const th = Number($("mvTh").value);
+  const groups = new Map();
+  records.filter(r => r.cat === tab && r.side === "market").forEach(r => {
+    const k = r.item + "|" + (r.q || "") + "|" + r.cur;
+    (groups.get(k) || groups.set(k, []).get(k)).push(r);
+  });
+  const rows = [];
+  for(const list of groups.values()){
+    if(list.length < 2) continue;
+    list.sort(byTsDesc);
+    const last = list[0], past = list.slice(1);
+    const avg = past.reduce((a,r) => a + r.price, 0) / past.length;
+    const pct = (last.price - avg) / avg * 100;
+    if(Math.abs(pct) >= th) rows.push({ last, avg: Math.round(avg), pct, n: list.length });
+  }
+  rows.sort((a,b) => Math.abs(b.pct) - Math.abs(a.pct));
+  if(!rows.length){ $("movers").innerHTML = `<tbody><tr><td class="empty">目前沒有變動超過 ${th}% 的項目。</td></tr></tbody>`; return; }
+  const p = (n, c) => c === "gold" ? compact(n) : fmt(n);
+  $("movers").innerHTML = `<thead><tr><th>物品</th><th>最新市價</th><th>過去平均</th><th>變動</th></tr></thead><tbody>` +
+    rows.slice(0, 30).map(x => { const r = x.last;
+      return `<tr class="click" data-i="${esc(r.item)}" data-q="${r.q || ""}" data-c="${r.cur}"><td>${esc(r.item)} ${qTag(r.q)}<span class="sub">${CUR[r.cur]} · ${x.n} 筆</span></td>
+        <td style="color:var(--${r.cur})">${p(r.price, r.cur)}<span class="when">${showTs(r.ts)}</span></td>
+        <td>${p(x.avg, r.cur)}</td>
+        <td class="${x.pct > 0 ? "hi" : "lo"}"><b style="white-space:nowrap">${x.pct > 0 ? "▲ +" : "▼ "}${x.pct.toFixed(1)}%</b></td></tr>`; }).join("") + "</tbody>";
+}
+
+function renderAll(){ renderView(); renderOverview(); renderLog(); renderMovers(); updatePlaceholder(); }
 
 // ---------- 備份 ----------
 function exportJson(){
@@ -691,12 +745,20 @@ bindSeg("cCur", renderChart);
 bindSeg("oCur", renderOverview);
 $("oStar").onchange = renderOverview;
 document.addEventListener("click", e => { const h = e.target.closest && e.target.closest("#chart .hit"); if(h) selectPoint(+h.dataset.i); });
-$("lFilter").onchange = renderLog;
+$("lFilter").onchange = () => { logPage = 1; renderLog(); };
+$("pager").addEventListener("click", e => { const b = e.target.closest("button[data-p]"); if(!b || b.disabled) return; logPage = +b.dataset.p; renderLog(); $("log").scrollIntoView({ block:"nearest" }); });
+$("mvTh").onchange = renderMovers;
+$("movers").addEventListener("click", e => {
+  const tr = e.target.closest("tr[data-i]"); if(!tr) return;
+  selectItem(tab, tr.dataset.i, tr.dataset.q || null);
+  setSeg("cCur", tr.dataset.c); renderChart();
+  $("vTitle").scrollIntoView({ behavior:"smooth", block:"start" });
+});
 $("tabs").addEventListener("click", e => { const b = e.target.closest("button[data-t]"); if(b) setTab(b.dataset.t); });
 $("overview").addEventListener("click", e => {
   const tr = e.target.closest("tr[data-i]"); if(!tr) return;
-  setSeg("cCur", segValue("oCur"));
   selectItem(tab, tr.dataset.i, tr.dataset.q || null);
+  setSeg("cCur", segValue("oCur")); renderChart();
   $("vTitle").scrollIntoView({ behavior:"smooth", block:"start" });
 });
 $("log").addEventListener("click", e => {
