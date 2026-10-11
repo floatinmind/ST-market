@@ -82,6 +82,15 @@ tr.click{cursor:pointer}tr.click:hover{background:var(--panel2)}
 .star.on{color:var(--gold);border-color:var(--gold)}
 svg text{fill:var(--muted);font-size:11px}
 #chart .hit{cursor:pointer}
+.acts{display:grid;grid-template-columns:1.2fr 1fr 1fr;gap:8px;margin-top:12px}
+.acts .btn{padding:11px 6px}
+.btn.kb{background:var(--buy);color:#10210f}.btn.ks{background:var(--sell);color:#2a0f08}
+.tag.market{background:var(--line);color:var(--text)}
+.legend{display:flex;gap:10px;font-size:12px;color:var(--muted);flex-wrap:wrap}
+.legend span{display:flex;align-items:center;gap:4px}
+.lg-line{display:inline-block;width:14px;height:2px;background:var(--muted)}
+.lg-buy{color:var(--buy);font-style:normal}.lg-sell{color:var(--sell);font-style:normal}
+.stat.trade{border-style:dashed}
 .cinfo{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 10px;margin-top:6px;padding:8px 10px;background:var(--panel2);border:1px solid var(--line);border-radius:7px;font-size:13px;font-variant-numeric:tabular-nums}
 .cinfo b{font-size:15px}.cinfo .when{color:var(--muted);font-size:12px}
 .foot{display:flex;gap:8px;flex-wrap:wrap}
@@ -138,9 +147,6 @@ svg text{fill:var(--muted);font-size:11px}
         <button data-v="normal" class="on">Normal</button><button data-v="superior">Superior</button><button data-v="flawless">Flawless</button><button data-v="epic">Epic</button><button data-v="legendary">Legendary</button>
       </div>
     </div>
-    <div class="f">交易方向
-      <div class="seg" id="fSide"><button data-v="buy" class="on">買入</button><button data-v="sell">賣出</button></div>
-    </div>
     <div class="f">幣別
       <div class="seg" id="fCur"><button data-v="gold" class="on">Gold</button><button data-v="gem">Gem</button></div>
     </div>
@@ -153,10 +159,15 @@ svg text{fill:var(--muted);font-size:11px}
       <div class="row"><input type="date" id="fDate"><select id="fHour"></select></div>
     </div>
   </div>
-  <div class="row" style="margin-top:12px;flex-wrap:wrap">
-    <button class="btn" id="addBtn" style="flex:0 0 auto">記錄</button>
+  <div class="acts">
+    <button class="btn" data-k="market">記錄市價</button>
+    <button class="btn kb" data-k="buy">我買下了</button>
+    <button class="btn ks" data-k="sell">我賣出了</button>
+  </div>
+  <div class="row" style="margin-top:8px">
     <button class="btn ghost small" id="nowBtn" style="flex:0 0 auto">時間設為現在</button>
   </div>
+  <div class="hint">「記錄市價」：看到的市場價格。「我買下了／我賣出了」：自己實際成交的價格，另外統計，不影響市價的最高最低。</div>
   <div class="hint" id="unitHint">輸入數字後在右邊選單位：k = 千、m = 百萬、g = 十億、T = 兆（例如 1.25 + m = 1,250,000）。選「—」代表不加單位。</div>
   <div class="msg" id="msg"></div>
 </div>
@@ -167,9 +178,9 @@ svg text{fill:var(--muted);font-size:11px}
   <div id="vBody">
     <div class="stats" id="stats"></div>
     <div style="margin-top:14px">
-      <div class="row" style="flex-wrap:wrap;gap:8px;margin-bottom:8px">
-        <div class="seg" id="cSide" style="flex:1;min-width:150px"><button data-v="buy" class="on">買入</button><button data-v="sell">賣出</button></div>
+      <div class="row" style="flex-wrap:wrap;gap:8px;margin-bottom:8px;align-items:center">
         <div class="seg" id="cCur" style="flex:1;min-width:150px"><button data-v="gold" class="on">Gold</button><button data-v="gem">Gem</button></div>
+        <div class="legend"><span><i class="lg-line"></i>市價</span><span><i class="lg-buy">▲</i>我買下</span><span><i class="lg-sell">▼</i>我賣出</span></div>
       </div>
       <div id="chart"></div>
     </div>
@@ -180,7 +191,6 @@ svg text{fill:var(--muted);font-size:11px}
 <div class="card">
   <h2 id="oTitle">總覽</h2>
   <div class="row" style="flex-wrap:wrap;gap:8px;margin-bottom:10px">
-    <div class="seg" id="oSide" style="flex:1;min-width:150px"><button data-v="buy" class="on">買入</button><button data-v="sell">賣出</button></div>
     <div class="seg" id="oCur" style="flex:1;min-width:150px"><button data-v="gold" class="on">Gold</button><button data-v="gem">Gem</button></div>
   </div>
   <label class="chk hide" id="oStarWrap" style="margin-bottom:8px"><input type="checkbox" id="oStar"> 只看關注</label>
@@ -226,7 +236,8 @@ const ITEMSET = { chest:new Set(CHESTS), ench:new Set(ENCH.map(e=>e[0])), equip:
 const TAB_NAME = { chest:"寶箱", ench:"元素・靈魂", equip:"裝備" };
 
 const KEY = "chestMarket.v1", STAR_KEY = "chestMarket.stars", PREF_KEY = "chestMarket.prefs";
-const SIDE = { buy:"買入", sell:"賣出" };
+// side：market = 市場價格；buy / sell = 自己實際買下／賣出（另帶 trade:true）
+const SIDE = { market:"市價", buy:"我買下", sell:"我賣出" };
 const CUR = { gold:"Gold", gem:"Gem" };
 const QUAL = { normal:"Normal", superior:"Superior", flawless:"Flawless", epic:"Epic", legendary:"Legendary" };
 
@@ -238,6 +249,9 @@ function normalize(r){
   if(!r) return null;
   if(!r.cat && r.chest){ r = { ...r, cat:"chest", item:r.chest }; delete r.chest; }
   if(r.cat === "chest") r.q = null;
+  // 舊版的「買入／賣出」其實都是當時市場價格，合併成市價
+  if(r.trade && (r.side === "buy" || r.side === "sell")) return r;
+  if(r.side !== "market"){ r = { ...r, side:"market" }; delete r.trade; }
   return r;
 }
 let records = (readJSON(KEY, []) || []).map(normalize).filter(Boolean);
@@ -294,6 +308,15 @@ const isStar = (t, item) => (stars[t] || []).includes(item);
 
 function subset(t, item, q, side, c){
   return records.filter(r => r.cat === t && r.item === item && (r.q || null) === (q || null) && r.side === side && r.cur === c);
+}
+const tsNum = ts => Date.UTC(+ts.slice(0,4), +ts.slice(5,7) - 1, +ts.slice(8,10), +ts.slice(11,13));
+// 某時間點（含）之前最近一筆市價
+function marketAt(list, ts){ let m = null; for(const r of list) if(r.ts <= ts && (!m || byTsDesc(r, m) < 0)) m = r; return m; }
+function tradeSummary(list){
+  if(!list.length) return null;
+  const avg = l => l.length ? Math.round(l.reduce((s,r) => s + r.price, 0) / l.length) : null;
+  const b = list.filter(r => r.side === "buy"), s = list.filter(r => r.side === "sell");
+  return { b, s, ab: avg(b), as: avg(s), last: list.slice().sort(byTsDesc)[0] };
 }
 function summarize(list){
   if(!list.length) return null;
@@ -410,10 +433,10 @@ function initPicker(){
 function initForm(){
   $("fHour").innerHTML = Array.from({length:24}, (_,h) => `<option value="${pad(h)}">${pad(h)}:00</option>`).join("");
   setNow();
-  bindSeg("fSide"); bindSeg("fCur", updateUnit); updateUnit();
+  bindSeg("fCur", updateUnit); updateUnit();
   $("nowBtn").onclick = setNow;
-  $("addBtn").onclick = addRecord;
-  $("fPrice").addEventListener("keydown", e => { if(e.key === "Enter") addRecord(); });
+  document.querySelectorAll(".acts .btn").forEach(b => b.onclick = () => addRecord(b.dataset.k));
+  $("fPrice").addEventListener("keydown", e => { if(e.key === "Enter") addRecord("market"); });
 }
 function setNow(){ const t = nowTs(); $("fDate").value = t.slice(0,10); $("fHour").value = t.slice(11,13); }
 // Gem 價格不超過 1000，不需要單位
@@ -424,7 +447,7 @@ function updateUnit(){
   $("fPrice").inputMode = gem ? "numeric" : "decimal";
   $("unitHint").style.display = gem ? "none" : "";
 }
-function addRecord(){
+function addRecord(kind){
   const s = cur();
   if(!s.item){ flash("請先選擇裝備。", true); $("pk").focus(); return; }
   const isGem = segValue("fCur") === "gem";
@@ -435,18 +458,25 @@ function addRecord(){
     id: Date.now() + Math.random().toString(36).slice(2,6),
     ts: $("fDate").value + "T" + $("fHour").value,
     cat: tab, item: s.item, q: tab === "chest" ? null : s.q,
-    side: segValue("fSide"), cur: segValue("fCur"), price
+    side: kind, cur: segValue("fCur"), price
   };
-  const before = summarize(subset(r.cat, r.item, r.q, r.side, r.cur));
+  if(kind !== "market") r.trade = true;
+  const mkt = subset(r.cat, r.item, r.q, "market", r.cur);
+  const before = summarize(mkt);
   records.push(r); save();
   let note = "";
-  if(before){
-    if(price > before.hi.price) note = "（新高！）";
-    else if(price < before.lo.price) note = "（新低！）";
+  if(kind === "market" && before){
+    if(price > before.hi.price) note = "（市價新高！）";
+    else if(price < before.lo.price) note = "（市價新低！）";
+  }
+  if(kind !== "market" && before){
+    // 跟最新市價比較
+    const d = price - before.last.price, pct = d / before.last.price * 100;
+    note = `（比最新市價 ${d > 0 ? "+" : ""}${pct.toFixed(1)}%）`;
   }
   flash(`已記錄：${SIDE[r.side]} ${r.item}${r.q ? " " + QUAL[r.q] : ""} ${fmt(price)} ${CUR[r.cur]}${note}`);
   $("fPrice").value = "";
-  setSeg("cSide", r.side); setSeg("cCur", r.cur); setSeg("oSide", r.side); setSeg("oCur", r.cur);
+  setSeg("cCur", r.cur); setSeg("oCur", r.cur);
   renderAll();
 }
 
@@ -461,72 +491,97 @@ function renderView(){
   if(!$("stats")) restoreViewBody();
   const info = INFO[s.item];
   $("vTitle").innerHTML = `<span class="selname">${esc(s.item)}</span> ${qTag(s.q)}${info ? ` <small style="color:var(--muted);font-weight:400">${esc(info.type)} · T${info.tier}</small>` : ""}`;
-  $("stats").innerHTML = ["buy","sell"].flatMap(side => ["gold","gem"].map(c => {
-    const st = summarize(subset(tab, s.item, s.q, side, c));
-    const head = `<div class="t"><span class="tag ${side}">${SIDE[side]}</span><span class="tag ${c}">${CUR[c]}</span></div>`;
+  const tick = r => `${fmt(r.price)} <span class="when">${showTs(r.ts)}</span>`;
+  const boxes = ["gold","gem"].map(c => {
+    const st = summarize(subset(tab, s.item, s.q, "market", c));
+    const head = `<div class="t"><span class="tag market">市價</span><span class="tag ${c}">${CUR[c]}</span></div>`;
     if(!st) return `<div class="stat">${head}<div class="empty">尚無紀錄</div></div>`;
     return `<div class="stat">${head}
       <div class="kv"><span class="hi">最高</span><span><b>${fmt(st.hi.price)}</b> <span class="when">${showTs(st.hi.ts)}</span></span></div>
       <div class="kv"><span class="lo">最低</span><span><b>${fmt(st.lo.price)}</b> <span class="when">${showTs(st.lo.ts)}</span></span></div>
       <div class="kv"><span>最新</span><span><b>${fmt(st.last.price)}</b> <span class="when">${showTs(st.last.ts)}</span></span></div>
       <div class="kv"><span>筆數</span><b>${st.n}</b></div></div>`;
-  })).join("");
+  });
+  const trades = ["gold","gem"].map(c => {
+    const t = tradeSummary(records.filter(r => r.trade && r.cat === tab && r.item === s.item && (r.q || null) === (s.q || null) && r.cur === c));
+    if(!t) return "";
+    const line = (k, l, avg) => l.length ? `<div class="kv"><span><span class="tag ${k}">${SIDE[k]}</span> ${l.length} 筆</span><span>平均 <b>${fmt(avg)}</b></span></div>` : "";
+    const spread = t.ab != null && t.as != null ? `<div class="kv"><span>平均價差（賣－買）</span><b class="${t.as >= t.ab ? "lo" : "hi"}">${t.as - t.ab > 0 ? "+" : ""}${fmt(t.as - t.ab)}</b></div>` : "";
+    return `<div class="stat trade"><div class="t">我的交易<span class="tag ${c}">${CUR[c]}</span></div>
+      ${line("buy", t.b, t.ab)}${line("sell", t.s, t.as)}${spread}
+      <div class="kv"><span>最近</span><span><span class="tag ${t.last.side}">${SIDE[t.last.side]}</span> <b>${tick(t.last)}</b></span></div></div>`;
+  });
+  $("stats").innerHTML = boxes.join("") + trades.join("");
   renderChart();
 }
 let viewBodyHTML;
-function restoreViewBody(){ $("vBody").innerHTML = viewBodyHTML; bindSeg("cSide", renderChart); bindSeg("cCur", renderChart); }
+function restoreViewBody(){ $("vBody").innerHTML = viewBodyHTML; bindSeg("cCur", renderChart); }
 
 function renderChart(){
   const s = cur(); if(!s.item || !$("chart")) return;
   const c = segValue("cCur");
-  const list = subset(tab, s.item, s.q, segValue("cSide"), c).sort(byTsAsc);
+  const all = records.filter(r => r.cat === tab && r.item === s.item && (r.q || null) === (s.q || null) && r.cur === c).sort(byTsAsc);
+  const mkt = all.filter(r => r.side === "market");
   const box = $("chart");
-  if(list.length < 2){ box.innerHTML = `<div class="empty">${list.length ? "再多一筆紀錄就能畫出價格走勢。" : "這個組合還沒有紀錄。"}</div>`; return; }
-  const W = 640, H = 220, L = 56, R = 12, T = 12, B = 30;
-  const prices = list.map(r => r.price);
+  if(all.length < 2){ box.innerHTML = `<div class="empty">${all.length ? "再多一筆紀錄就能畫出價格走勢。" : "這個幣別還沒有紀錄。"}</div>`; return; }
+  const W = 640, H = 230, L = 56, R = 18, T = 22, B = 30;
+  const prices = all.map(r => r.price);
   let min = Math.min(...prices), max = Math.max(...prices);
   if(min === max){ min *= 0.95; max *= 1.05; }
-  const x = i => L + (W - L - R) * (i / (list.length - 1));
+  // 橫軸依實際時間
+  const t0 = tsNum(all[0].ts), t1 = tsNum(all[all.length - 1].ts);
+  const xt = ts => t1 === t0 ? (L + W - R) / 2 : L + (W - L - R) * (tsNum(ts) - t0) / (t1 - t0);
   const y = p => T + (H - T - B) * (1 - (p - min) / (max - min));
   const color = c === "gold" ? "var(--gold)" : "var(--gem)";
-  const pts = list.map((r,i) => `${x(i).toFixed(1)},${y(r.price).toFixed(1)}`).join(" ");
   const grid = [0, .5, 1].map(f => { const p = min + (max - min) * f, yy = y(p);
     return `<line x1="${L}" x2="${W-R}" y1="${yy}" y2="${yy}" stroke="var(--line)" stroke-dasharray="3 4"/><text x="${L-6}" y="${yy+4}" text-anchor="end">${compact(Math.round(p))}</text>`; }).join("");
-  const dots = list.map((r,i) => `<circle cx="${x(i)}" cy="${y(r.price)}" r="3.5" fill="${color}"/>`).join("");
+  const line = mkt.length >= 2 ? `<polyline points="${mkt.map(r => `${xt(r.ts).toFixed(1)},${y(r.price).toFixed(1)}`).join(" ")}" fill="none" stroke="${color}" stroke-width="2"/>` : "";
+  const tri = (x, yy, up) => up ? `${x},${yy-11} ${x-9},${yy+6} ${x+9},${yy+6}` : `${x},${yy+11} ${x-9},${yy-6} ${x+9},${yy-6}`;
+  const marks = all.map(r => {
+    const x = xt(r.ts), yy = y(r.price);
+    if(r.side === "market") return `<circle cx="${x}" cy="${yy}" r="4.5" fill="${color}"/>`;
+    return `<polygon points="${tri(x, yy, r.side === "buy")}" fill="var(--${r.side})" stroke="var(--bg)" stroke-width="1.5"/>`;
+  }).join("");
   // 透明的大圓當作點擊範圍，手機上比較好點
-  const hits = list.map((r,i) => `<circle class="hit" data-i="${i}" cx="${x(i)}" cy="${y(r.price)}" r="14" fill="transparent"/>`).join("");
-  const labels = [0, list.length - 1].map(i => `<text x="${x(i)}" y="${H-10}" text-anchor="${i ? "end" : "start"}">${showTs(list[i].ts).slice(5)}</text>`).join("");
+  const hits = all.map((r,i) => `<circle class="hit" data-i="${i}" cx="${xt(r.ts)}" cy="${y(r.price)}" r="14" fill="transparent"/>`).join("");
+  const labels = [0, all.length - 1].map(i => `<text x="${i ? W-R : L}" y="${H-10}" text-anchor="${i ? "end" : "start"}">${showTs(all[i].ts).slice(5)}</text>`).join("");
   box.innerHTML = `<svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="價格走勢">${grid}
     <line id="cGuide" y1="${T}" y2="${H-B}" stroke="var(--muted)" stroke-dasharray="2 3" visibility="hidden"/>
-    <polyline points="${pts}" fill="none" stroke="${color}" stroke-width="2"/>${dots}
-    <circle id="cMark" r="6.5" fill="${color}" stroke="var(--text)" stroke-width="2" visibility="hidden"/>${labels}${hits}</svg>
+    ${line}${marks}
+    <circle id="cMark" r="14" fill="none" stroke="var(--text)" stroke-width="2" visibility="hidden"/>${labels}${hits}</svg>
     <div class="cinfo" id="cInfo"><span class="empty">點選圖上的點，可查看當時的價格與時間。</span></div>`;
-  chartState = { list, x, y, c };
+  chartState = { all, mkt, xt, y, c };
   // 切換物品或幣別後，預設選最新一筆
-  selectPoint(list.length - 1);
+  selectPoint(all.length - 1);
 }
 let chartState = null;
 function selectPoint(i){
   const st = chartState; if(!st || !$("cInfo")) return;
-  const r = st.list[i]; if(!r) return;
-  const cx = st.x(i), cy = st.y(r.price);
+  const r = st.all[i]; if(!r) return;
+  const cx = st.xt(r.ts), cy = st.y(r.price);
   $("cMark").setAttribute("cx", cx); $("cMark").setAttribute("cy", cy); $("cMark").setAttribute("visibility", "visible");
   $("cGuide").setAttribute("x1", cx); $("cGuide").setAttribute("x2", cx); $("cGuide").setAttribute("visibility", "visible");
-  const prev = st.list[i - 1];
-  let diff = "";
-  if(prev){
-    const d = r.price - prev.price, pct = prev.price ? d / prev.price * 100 : 0;
+  const cmp = (base, label) => {
+    const d = r.price - base.price, pct = base.price ? d / base.price * 100 : 0;
     const cls = d > 0 ? "hi" : d < 0 ? "lo" : "";
-    diff = `<span class="${cls}">比上一筆 ${d > 0 ? "+" : ""}${fmt(d)}（${d > 0 ? "+" : ""}${pct.toFixed(1)}%）</span>`;
+    return `<span class="${cls}">${label} ${d > 0 ? "+" : ""}${fmt(d)}（${d > 0 ? "+" : ""}${pct.toFixed(1)}%）</span>`;
+  };
+  let diff = "";
+  if(r.side === "market"){
+    const k = st.mkt.indexOf(r), prev = st.mkt[k - 1];
+    if(prev) diff = cmp(prev, "比上一筆市價");
+  } else {
+    const m = marketAt(st.mkt, r.ts);
+    if(m) diff = cmp(m, "比當時市價");
   }
-  $("cInfo").innerHTML = `<span class="when">${showTs(r.ts)}</span>
+  $("cInfo").innerHTML = `<span class="tag ${r.side}">${SIDE[r.side]}</span><span class="when">${showTs(r.ts)}</span>
     <b style="color:var(--${st.c})">${fmt(r.price)} ${CUR[st.c]}</b>${st.c === "gold" && r.price >= 1000 ? `<span class="when">（${compact(r.price)}）</span>` : ""}
-    ${diff}<span class="when" style="margin-left:auto">第 ${i + 1} / ${st.list.length} 筆</span>`;
+    ${diff}<span class="when" style="margin-left:auto">第 ${i + 1} / ${st.all.length} 筆</span>`;
 }
 
 // ---------- 總覽 ----------
 function renderOverview(){
-  const side = segValue("oSide"), c = segValue("oCur");
+  const c = segValue("oCur");
   $("oTitle").textContent = TAB_NAME[tab] + "總覽";
   let rows = [];
   if(tab === "chest"){
@@ -545,7 +600,7 @@ function renderOverview(){
     if($("oStar").checked) rows = rows.filter(x => isStar(tab, x.item));
     $("oHint").textContent = "只列出記錄過或加了關注（★）的項目" + (tab === "equip" ? "，並套用上方的類型／階級篩選" : "") + "。點一列可切換過去。";
   }
-  const data = rows.map(x => ({ ...x, s: x.placeholder ? null : summarize(subset(tab, x.item, x.q, side, c)) }));
+  const data = rows.map(x => ({ ...x, s: x.placeholder ? null : summarize(subset(tab, x.item, x.q, "market", c)) }));
   if(tab !== "chest"){
     const lastAny = x => records.filter(r => r.cat === tab && r.item === x.item && (r.q || null) === (x.q || null)).reduce((m,r) => r.ts > m ? r.ts : m, "");
     data.forEach(x => x.lt = lastAny(x));
@@ -563,7 +618,7 @@ function renderOverview(){
       <td>${fmt(x.s.last.price)}<span class="when">${showTs(x.s.last.ts)}</span></td>
       <td>${x.s.n}</td></tr>`;
   }).join("");
-  $("overview").innerHTML = `<thead><tr><th>${tab === "chest" ? "寶箱" : "物品"}</th><th>最低</th><th>最高</th><th>最新</th><th>筆數</th></tr></thead><tbody>${body}</tbody>`;
+  $("overview").innerHTML = `<thead><tr><th>${tab === "chest" ? "寶箱" : "物品"}</th><th>市價最低</th><th>市價最高</th><th>最新市價</th><th>筆數</th></tr></thead><tbody>${body}</tbody>`;
 }
 
 // ---------- 紀錄 ----------
@@ -583,7 +638,7 @@ function renderAll(){ renderView(); renderOverview(); renderLog(); }
 
 // ---------- 備份 ----------
 function exportJson(){
-  const blob = new Blob([JSON.stringify({ app:"chest-market", version:2, exported:new Date().toISOString(), records, stars }, null, 2)], { type:"application/json" });
+  const blob = new Blob([JSON.stringify({ app:"chest-market", version:3, exported:new Date().toISOString(), records, stars }, null, 2)], { type:"application/json" });
   const a = document.createElement("a");
   a.href = URL.createObjectURL(blob);
   a.download = `market_ledger_${nowTs().replace("T","_")}.json`;
@@ -591,7 +646,7 @@ function exportJson(){
 }
 function validRecord(r){
   return r && r.id && ITEMSET[r.cat] && ITEMSET[r.cat].has(r.item) && (r.cat === "chest" ? r.q === null : !!QUAL[r.q])
-    && SIDE[r.side] && CUR[r.cur] && r.price > 0 && /^\d{4}-\d{2}-\d{2}T\d{2}$/.test(r.ts);
+    && SIDE[r.side] && (r.side === "market" ? !r.trade : r.trade === true) && CUR[r.cur] && r.price > 0 && /^\d{4}-\d{2}-\d{2}T\d{2}$/.test(r.ts);
 }
 function importJson(file){
   const rd = new FileReader();
@@ -616,15 +671,15 @@ function importJson(file){
 viewBodyHTML = $("vBody").innerHTML;
 initSelectors();
 initForm();
-bindSeg("cSide", renderChart); bindSeg("cCur", renderChart);
-bindSeg("oSide", renderOverview); bindSeg("oCur", renderOverview);
+bindSeg("cCur", renderChart);
+bindSeg("oCur", renderOverview);
 $("oStar").onchange = renderOverview;
 document.addEventListener("click", e => { const h = e.target.closest && e.target.closest("#chart .hit"); if(h) selectPoint(+h.dataset.i); });
 $("lFilter").onchange = renderLog;
 $("tabs").addEventListener("click", e => { const b = e.target.closest("button[data-t]"); if(b) setTab(b.dataset.t); });
 $("overview").addEventListener("click", e => {
   const tr = e.target.closest("tr[data-i]"); if(!tr) return;
-  setSeg("cSide", segValue("oSide")); setSeg("cCur", segValue("oCur"));
+  setSeg("cCur", segValue("oCur"));
   selectItem(tab, tr.dataset.i, tr.dataset.q || null);
   $("vTitle").scrollIntoView({ behavior:"smooth", block:"start" });
 });
