@@ -354,7 +354,13 @@ function initSelectors(){
   $("fType").innerHTML += types.map(t => `<option>${esc(t)}</option>`).join("");
   const tiers = [...new Set(EQUIP.map(e => e[2]))].sort((a,b) => a-b);
   $("fTier").innerHTML += tiers.map(t => `<option value="${t}">T${t}</option>`).join("");
-  $("fType").onchange = $("fTier").onchange = () => { renderOverview(); if(document.activeElement === $("pk")) openPicker(); };
+  $("fTier").onchange = () => { renderOverview(); if(document.activeElement === $("pk")) openPicker(); };
+  // 換裝備類型時清空名稱，直接列出該類型讓你挑
+  $("fType").onchange = () => {
+    sel.equip.item = null; $("pk").value = "";
+    syncItemUI(); renderAll();
+    $("pk").focus();
+  };
 
   $("starEnch").onclick = () => toggleStar("ench");
   $("starEquip").onclick = () => toggleStar("equip");
@@ -394,6 +400,9 @@ function equipMatches(query){
     const recent = [...new Set(records.filter(r => r.cat === "equip").sort(byTsDesc).map(r => r.item))];
     const order = [...new Set([...(stars.equip || []), ...recent])];
     list = order.map(n => EQUIP.find(e => e[0] === n)).filter(Boolean);
+  } else if(!toks.length){
+    // 只用類型／階級篩選時，高階的排前面
+    list = list.slice().sort((a,b) => b[2] - a[2]);
   }
   return list.slice(0, 60);
 }
@@ -412,7 +421,7 @@ function pickAt(i){
   closePicker(); $("pk").blur(); selectItem("equip", it[0]);
 }
 function initPicker(){
-  $("pk").addEventListener("focus", () => { $("pk").select(); openPicker(); });
+  $("pk").addEventListener("focus", () => { $("pk").value = ""; openPicker(); }); // 點名稱欄就清空，方便直接輸入
   $("pk").addEventListener("input", openPicker);
   $("pk").addEventListener("keydown", e => {
     const rows = $("pkList").querySelectorAll("div[data-i]");
@@ -443,7 +452,7 @@ function setNow(){ const t = nowTs(); $("fDate").value = t.slice(0,10); $("fHour
 function updateUnit(){
   const gem = segValue("fCur") === "gem";
   $("fUnit").style.display = gem ? "none" : "";
-  $("fPrice").placeholder = gem ? "例：150" : "例：1.25";
+  updatePlaceholder();
   $("fPrice").inputMode = gem ? "numeric" : "decimal";
   $("unitHint").style.display = gem ? "none" : "";
 }
@@ -634,7 +643,14 @@ function renderLog(){
     : `<li class="empty">尚無紀錄</li>`;
 }
 
-function renderAll(){ renderView(); renderOverview(); renderLog(); }
+// 價格欄提示文字：顯示這件物品（＋品質、幣別）的市價最高／最低
+function updatePlaceholder(){
+  const gem = segValue("fCur") === "gem", s = cur();
+  const st = s.item ? summarize(subset(tab, s.item, s.q, "market", gem ? "gem" : "gold")) : null;
+  const f = n => gem ? fmt(n) : compact(n);
+  $("fPrice").placeholder = st ? (st.n === 1 ? `市價 ${f(st.hi.price)}` : `最高 ${f(st.hi.price)}／最低 ${f(st.lo.price)}`) : (gem ? "例：150" : "例：1.25");
+}
+function renderAll(){ renderView(); renderOverview(); renderLog(); updatePlaceholder(); }
 
 // ---------- 備份 ----------
 function exportJson(){
