@@ -198,6 +198,7 @@ svg text{fill:var(--muted);font-size:11px}
   </div>
   <label class="chk hide" id="oStarWrap" style="margin-bottom:8px"><input type="checkbox" id="oStar"> 只看關注</label>
   <div class="tablewrap"><table id="overview"></table></div>
+  <div class="pager" id="oPager"></div>
   <div class="hint" id="oHint"></div>
 </div>
 
@@ -350,7 +351,7 @@ function setTab(t){
   $("qWrap").classList.toggle("hide", t === "chest");
   $("oStarWrap").classList.toggle("hide", t === "chest");
   if(t !== "chest") setSeg("fQ", cur().q);
-  logPage = 1;
+  logPage = 1; ovPage = 1;
   writeJSON(PREF_KEY, { tab: t });
   syncItemUI(); renderAll();
 }
@@ -373,7 +374,7 @@ function initSelectors(){
   $("fType").innerHTML += types.map(t => `<option>${esc(t)}</option>`).join("");
   const tiers = [...new Set(EQUIP.map(e => e[2]))].sort((a,b) => a-b);
   $("fTier").innerHTML += tiers.map(t => `<option value="${t}">T${t}</option>`).join("");
-  $("fTier").onchange = () => { renderOverview(); if(document.activeElement === $("pk")) openPicker(); };
+  $("fTier").onchange = () => { ovPage = 1; renderOverview(); if(document.activeElement === $("pk")) openPicker(); };
   // 換裝備類型時清空名稱，直接列出該類型讓你挑
   $("fType").onchange = () => {
     sel.equip.item = null; $("pk").value = "";
@@ -641,8 +642,12 @@ function renderOverview(){
     data.forEach(x => x.lt = lastAny(x));
     data.sort((a,b) => (isStar(tab,b.item) - isStar(tab,a.item)) || (a.lt < b.lt ? 1 : a.lt > b.lt ? -1 : 0));
   }
-  if(!data.length){ $("overview").innerHTML = `<tbody><tr><td class="empty">還沒有紀錄。</td></tr></tbody>`; return; }
-  const body = data.map(x => {
+  if(!data.length){ $("oPager").innerHTML = ""; $("overview").innerHTML = `<tbody><tr><td class="empty">還沒有紀錄。</td></tr></tbody>`; return; }
+  // 每頁 20 項
+  const pages = Math.max(1, Math.ceil(data.length / PAGE));
+  ovPage = Math.min(Math.max(1, ovPage), pages);
+  $("oPager").innerHTML = pagerHTML(ovPage, pages, data.length, "項");
+  const body = data.slice((ovPage - 1) * PAGE, ovPage * PAGE).map(x => {
     const info = INFO[x.item];
     const name = `${isStar(tab, x.item) ? "★ " : ""}${esc(x.item)} ${qTag(x.q)}` + (tab !== "chest" && info ? `<span class="sub">${esc(info.type)} · T${info.tier}</span>` : "");
     const attrs = `class="click" data-i="${esc(x.item)}" data-q="${x.q || ""}"`;
@@ -658,15 +663,19 @@ function renderOverview(){
 
 // ---------- 紀錄 ----------
 const PAGE = 20;
-let logPage = 1;
+let logPage = 1, ovPage = 1;
+function pagerHTML(pg, pages, total, unit){
+  if(total <= PAGE) return "";
+  return `<button class="btn ghost small" data-p="${pg - 1}" ${pg === 1 ? "disabled" : ""}>‹ 上一頁</button>
+    <span>第 ${pg} / ${pages} 頁（共 ${total} ${unit}）</span>
+    <button class="btn ghost small" data-p="${pg + 1}" ${pg === pages ? "disabled" : ""}>下一頁 ›</button>`;
+}
 function renderLog(){
   const s = cur(), only = $("lFilter").value === "sel";
   const list = records.filter(r => r.cat === tab && (!only || (r.item === s.item && (r.q || null) === (s.q || null)))).sort(byTsDesc);
   const pages = Math.max(1, Math.ceil(list.length / PAGE));
   logPage = Math.min(Math.max(1, logPage), pages);
-  $("pager").innerHTML = list.length > PAGE ? `<button class="btn ghost small" data-p="${logPage - 1}" ${logPage === 1 ? "disabled" : ""}>‹ 上一頁</button>
-    <span>第 ${logPage} / ${pages} 頁（共 ${list.length} 筆）</span>
-    <button class="btn ghost small" data-p="${logPage + 1}" ${logPage === pages ? "disabled" : ""}>下一頁 ›</button>` : "";
+  $("pager").innerHTML = pagerHTML(logPage, pages, list.length, "筆");
   $("log").innerHTML = list.length ? list.slice((logPage - 1) * PAGE, logPage * PAGE).map(r => `<li>
       <span class="when">${showTs(r.ts)}</span>
       <span class="tag ${r.side}">${SIDE[r.side]}</span>
@@ -750,7 +759,8 @@ initSelectors();
 initForm();
 bindSeg("cCur", renderChart);
 bindSeg("oCur", renderOverview);
-$("oStar").onchange = renderOverview;
+$("oStar").onchange = () => { ovPage = 1; renderOverview(); };
+$("oPager").addEventListener("click", e => { const b = e.target.closest("button[data-p]"); if(!b || b.disabled) return; ovPage = +b.dataset.p; renderOverview(); $("oTitle").scrollIntoView({ block:"nearest" }); });
 document.addEventListener("click", e => { const h = e.target.closest && e.target.closest("#chart .hit"); if(h) selectPoint(+h.dataset.i); });
 $("lFilter").onchange = () => { logPage = 1; renderLog(); };
 $("pager").addEventListener("click", e => { const b = e.target.closest("button[data-p]"); if(!b || b.disabled) return; logPage = +b.dataset.p; renderLog(); $("log").scrollIntoView({ block:"nearest" }); });
