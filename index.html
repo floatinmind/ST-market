@@ -66,7 +66,7 @@ select:focus,input:focus{outline:2px solid var(--accent);outline-offset:-1px}
 .empty{color:var(--muted);font-size:13px}
 table{width:100%;border-collapse:collapse;font-size:13px}
 th,td{padding:7px 6px;border-bottom:1px solid var(--line);text-align:right;vertical-align:top;font-variant-numeric:tabular-nums}
-th{color:var(--muted);font-weight:600;background:var(--panel)}
+th{color:var(--muted);font-weight:600;background:var(--panel);white-space:nowrap}
 th:first-child,td:first-child{text-align:left}
 td .when{display:block;color:var(--muted);font-size:11px}
 td .sub{display:block;color:var(--muted);font-size:11px}
@@ -90,7 +90,10 @@ svg text{fill:var(--muted);font-size:11px}
 .legend span{display:flex;align-items:center;gap:4px}
 .lg-line{display:inline-block;width:14px;height:2px;background:var(--muted)}
 .lg-buy{color:var(--buy);font-style:normal}.lg-sell{color:var(--sell);font-style:normal}
-.stat.trade{border-style:dashed}
+.stat.trade{border-style:dashed;grid-column:1/-1}
+.gain{color:var(--buy)}.loss{color:var(--sell)}
+.stat.trade .kv{align-items:baseline}
+.stat.trade .kv>span:last-child{text-align:right}
 .pager{display:flex;justify-content:center;align-items:center;gap:12px;margin-top:10px;font-size:13px;color:var(--muted)}
 .pager:empty{display:none}
 .pager button:disabled{opacity:.35;cursor:default}
@@ -158,6 +161,9 @@ svg text{fill:var(--muted);font-size:11px}
         <option value="1">—</option><option value="1e3">k</option><option value="1e6" selected>m</option><option value="1e9">g</option><option value="1e12">T</option>
       </select></div>
     </div>
+    <div class="f">數量（買下／賣出用）
+      <input id="fQty" type="number" inputmode="numeric" min="1" step="1" value="1">
+    </div>
     <div class="f">日期與時間（小時）
       <div class="row"><input type="date" id="fDate"><select id="fHour"></select></div>
     </div>
@@ -170,7 +176,7 @@ svg text{fill:var(--muted);font-size:11px}
   <div class="row" style="margin-top:8px">
     <button class="btn ghost small" id="nowBtn" style="flex:0 0 auto">時間設為現在</button>
   </div>
-  <div class="hint">「記錄市價」：看到的市場價格。「我買下了／我賣出了」：自己實際成交的價格，另外統計；同時也會用同一個價格記一筆市價。</div>
+  <div class="hint">「記錄市價」：看到的市場價格。「我買下了／我賣出了」：自己實際成交的單價和數量，另外統計（賣出時自動扣手續費：Gem 20%、Gold 10%）；同時也會用同一個價格記一筆市價。</div>
   <div class="hint" id="unitHint">輸入數字後在右邊選單位：k = 千、m = 百萬、g = 十億、T = 兆（例如 1.25 + m = 1,250,000）。選「—」代表不加單位。</div>
   <div class="msg" id="msg"></div>
 </div>
@@ -188,6 +194,15 @@ svg text{fill:var(--muted);font-size:11px}
       <div id="chart"></div>
     </div>
   </div>
+</div>
+
+<!-- 我的持有 -->
+<div class="card">
+  <h2>我的持有</h2>
+  <div class="tablewrap"><table id="hold"></table></div>
+  <div class="pager" id="hPager"></div>
+  <div class="hint" id="hSum"></div>
+  <div class="hint">根據你記的「我買下了／我賣出了」計算，三個分頁的物品都列在這裡。平均成本用平均成本法；預估損益 = 以最新市價賣出、扣掉手續費後的實收，減去平均成本。點一列可切換過去。</div>
 </div>
 
 <!-- 總覽 -->
@@ -326,6 +341,47 @@ function subset(t, item, q, side, c){
 const tsNum = ts => Date.UTC(+ts.slice(0,4), +ts.slice(5,7) - 1, +ts.slice(8,10), +ts.slice(11,13));
 // 某時間點（含）之前最近一筆市價
 function marketAt(list, ts){ let m = null; for(const r of list) if(r.ts <= ts && (!m || byTsDesc(r, m) < 0)) m = r; return m; }
+// 賣出手續費
+const FEE = { gold:0.1, gem:0.2 };
+const netOf = (price, c) => Math.floor(price * (1 - FEE[c]));   // 每件實收（無條件捨去）
+const qtyOf = r => r.qty > 0 ? r.qty : 1;                        // 舊紀錄沒有數量，當作 1
+const money = (n, c) => c === "gold" && Math.abs(n) >= 1e4 ? (n < 0 ? "-" : "") + compact(Math.abs(Math.round(n))) : fmt(Math.round(n));
+const signed = (n, c) => `<b class="${n > 0 ? "gain" : n < 0 ? "loss" : ""}">${n > 0 ? "+" : ""}${money(n, c)}</b>`;
+// 某物品（＋品質）的持有與損益：平均成本法，成本可能混合 Gold／Gem
+function position(cat, item, q){
+  const list = records.filter(r => r.trade && r.cat === cat && r.item === item && (r.q || null) === (q || null)).sort(byTsAsc);
+  if(!list.length) return null;
+  const z = () => ({ gold:0, gem:0 });
+  const P = { qty:0, cost:z(), real:z(), bq:z(), bt:z(), sq:z(), sg:z(), sn:z(), uncovered:0, n:list.length, last:list[list.length - 1] };
+  for(const r of list){
+    const n = qtyOf(r), c = r.cur;
+    if(r.side === "buy"){ P.qty += n; P.cost[c] += r.price * n; P.bq[c] += n; P.bt[c] += r.price * n; continue; }
+    const net = netOf(r.price, c) * n;
+    P.sq[c] += n; P.sg[c] += r.price * n; P.sn[c] += net;
+    const cov = Math.min(n, P.qty);
+    if(cov > 0){
+      const frac = cov / P.qty;
+      for(const cc of ["gold","gem"]){ const rm = P.cost[cc] * frac; P.cost[cc] -= rm; P.real[cc] -= rm; }
+      P.real[c] += net * cov / n;
+      P.qty -= cov;
+    }
+    P.uncovered += n - cov;   // 超過記錄持有量的部分：成本不明，不算損益
+  }
+  return P;
+}
+// 以最新市價賣出的預估損益（只在成本是單一幣別時計算）
+function estimate(cat, item, q, P){
+  if(!P || P.qty <= 0) return null;
+  const cs = ["gold","gem"].filter(c => P.cost[c] > 0.5);
+  if(cs.length !== 1) return { mixed: cs.length > 1 };
+  const c = cs[0], st = summarize(subset(cat, item, q, "market", c));
+  if(!st) return { c, noMarket:true };
+  return { c, last: st.last.price, pnl: (netOf(st.last.price, c) - P.cost[c] / P.qty) * P.qty };
+}
+function avgCostText(P){
+  const parts = ["gold","gem"].filter(c => P.cost[c] > 0.5).map(c => `${money(P.cost[c] / P.qty, c)} ${CUR[c]}`);
+  return parts.length ? parts.join(" + ") : "—";
+}
 function tradeSummary(list){
   if(!list.length) return null;
   const avg = l => l.length ? Math.round(l.reduce((s,r) => s + r.price, 0) / l.length) : null;
@@ -483,6 +539,9 @@ function addRecord(kind){
   const price = parsePrice($("fPrice").value, isGem ? 1 : Number($("fUnit").value));
   if(!(price > 0)){ flash("請輸入有效的價格。", true); $("fPrice").focus(); return; }
   if(!$("fDate").value){ flash("請選擇日期。", true); return; }
+  const qty = Number($("fQty").value);
+  if(kind !== "market" && !(Number.isInteger(qty) && qty >= 1)){ flash("數量請輸入 1 以上的整數。", true); $("fQty").focus(); return; }
+  const held = kind === "sell" ? (position(tab, s.item, tab === "chest" ? null : s.q) || { qty:0 }).qty : 0;
   const r = {
     id: Date.now() + Math.random().toString(36).slice(2,6),
     ts: $("fDate").value + "T" + $("fHour").value,
@@ -496,12 +555,17 @@ function addRecord(kind){
   } else {
     // 買下／賣出時，同一個價格也記一筆市價；兩筆用 pair 互相對應，刪除時一起刪
     const m = { ...r };
-    r.id = m.id + "t"; r.trade = true; r.pair = m.id;
+    r.id = m.id + "t"; r.trade = true; r.pair = m.id; r.qty = qty;
     m.side = "market"; m.pair = r.id;
     records.push(m, r);
     if(before){
       const d = price - before.last.price, pct = d / before.last.price * 100;
       note = `（比上一筆市價 ${d > 0 ? "+" : ""}${pct.toFixed(1)}%）`;
+    }
+    if(kind === "sell"){
+      const net = netOf(price, r.cur);
+      note = `，手續費 ${FEE[r.cur] * 100}%，實收 ${fmt(net * qty)} ${CUR[r.cur]}` + note;
+      if(qty > held) note += `（賣出數量超過記錄的持有 ${held} 件，多的部分成本不明，不計損益）`;
     }
     note += "，並記入市價";
   }
@@ -510,8 +574,8 @@ function addRecord(kind){
     else if(price < before.lo.price) note += "（市價新低！）";
   }
   save();
-  flash(`已記錄：${SIDE[r.side]} ${r.item}${r.q ? " " + QUAL[r.q] : ""} ${fmt(price)} ${CUR[r.cur]}${note}`);
-  $("fPrice").value = "";
+  flash(`已記錄：${SIDE[r.side]} ${r.item}${r.q ? " " + QUAL[r.q] : ""} ${fmt(price)} ${CUR[r.cur]}${kind !== "market" ? " ×" + qty : ""}${note}`);
+  $("fPrice").value = ""; $("fQty").value = 1;
   setSeg("cCur", r.cur); setSeg("oCur", r.cur);
   renderAll();
 }
@@ -538,16 +602,24 @@ function renderView(){
       <div class="kv"><span>最新</span><span><b>${fmt(st.last.price)}</b> <span class="when">${showTs(st.last.ts)}</span></span></div>
       <div class="kv"><span>筆數</span><b>${st.n}</b></div></div>`;
   });
-  const trades = ["gold","gem"].map(c => {
-    const t = tradeSummary(records.filter(r => r.trade && r.cat === tab && r.item === s.item && (r.q || null) === (s.q || null) && r.cur === c));
-    if(!t) return "";
-    const line = (k, l, avg) => l.length ? `<div class="kv"><span><span class="tag ${k}">${SIDE[k]}</span> ${l.length} 筆</span><span>平均 <b>${fmt(avg)}</b></span></div>` : "";
-    const spread = t.ab != null && t.as != null ? `<div class="kv"><span>平均價差（賣－買）</span><b class="${t.as >= t.ab ? "lo" : "hi"}">${t.as - t.ab > 0 ? "+" : ""}${fmt(t.as - t.ab)}</b></div>` : "";
-    return `<div class="stat trade"><div class="t">我的交易<span class="tag ${c}">${CUR[c]}</span></div>
-      ${line("buy", t.b, t.ab)}${line("sell", t.s, t.as)}${spread}
-      <div class="kv"><span>最近</span><span><span class="tag ${t.last.side}">${SIDE[t.last.side]}</span> <b>${tick(t.last)}</b></span></div></div>`;
-  });
-  $("stats").innerHTML = boxes.join("") + trades.join("");
+  const P = position(tab, s.item, s.q);
+  let trade = "";
+  if(P){
+    const cs = ["gold","gem"];
+    const buyL = cs.filter(c => P.bq[c]).map(c => `<div class="kv"><span><span class="tag buy">我買下</span> ${P.bq[c]} 件 <span class="tag ${c}">${CUR[c]}</span></span><span>平均 <b>${money(P.bt[c] / P.bq[c], c)}</b></span></div>`).join("");
+    const sellL = cs.filter(c => P.sq[c]).map(c => `<div class="kv"><span><span class="tag sell">我賣出</span> ${P.sq[c]} 件 <span class="tag ${c}">${CUR[c]}</span></span><span>平均 <b>${money(P.sg[c] / P.sq[c], c)}</b>，扣 ${FEE[c] * 100}% 實收 <b>${money(P.sn[c] / P.sq[c], c)}</b></span></div>`).join("");
+    const realL = cs.filter(c => Math.abs(P.real[c]) > 0.5).map(c => `${signed(P.real[c], c)} ${CUR[c]}`).join("、");
+    const est = estimate(tab, s.item, s.q, P);
+    const estL = !est ? "" : est.mixed ? "成本混合 Gold／Gem，無法估算" : est.noMarket ? `還沒有 ${CUR[est.c]} 市價` : `${signed(est.pnl, est.c)} ${CUR[est.c]}（最新市價 ${money(est.last, est.c)}）`;
+    trade = `<div class="stat trade"><div class="t">我的交易</div>
+      <div class="kv"><span>目前持有</span><span><b>${P.qty}</b> 件${P.qty > 0 ? `，平均成本 <b>${avgCostText(P)}</b>` : ""}</span></div>
+      ${buyL}${sellL}
+      <div class="kv"><span>已實現損益（扣手續費）</span><span>${realL || "0"}</span></div>
+      ${P.qty > 0 ? `<div class="kv"><span>現在賣出的預估損益</span><span>${estL}</span></div>` : ""}
+      ${P.uncovered ? `<div class="kv"><span class="when">有 ${P.uncovered} 件賣出時超過記錄的持有量，成本不明，未計入損益。</span></div>` : ""}
+      <div class="kv"><span>最近</span><span><span class="tag ${P.last.side}">${SIDE[P.last.side]}</span> <b>${fmt(P.last.price)} ${CUR[P.last.cur]} ×${qtyOf(P.last)}</b> <span class="when">${showTs(P.last.ts)}</span></span></div></div>`;
+  }
+  $("stats").innerHTML = boxes.join("") + trade;
   renderChart();
 }
 let viewBodyHTML;
@@ -611,7 +683,7 @@ function selectPoint(i){
     if(m) diff = cmp(m, "比當時市價");
   }
   $("cInfo").innerHTML = `<span class="tag ${r.side}">${SIDE[r.side]}</span><span class="when">${showTs(r.ts)}</span>
-    <b style="color:var(--${st.c})">${fmt(r.price)} ${CUR[st.c]}</b>${st.c === "gold" && r.price >= 1000 ? `<span class="when">（${compact(r.price)}）</span>` : ""}
+    <b style="color:var(--${st.c})">${fmt(r.price)} ${CUR[st.c]}${r.trade ? " ×" + qtyOf(r) : ""}</b>${st.c === "gold" && r.price >= 1000 ? `<span class="when">（${compact(r.price)}）</span>` : ""}
     ${diff}<span class="when" style="margin-left:auto">第 ${i + 1} / ${st.all.length} 筆</span>`;
 }
 
@@ -680,7 +752,7 @@ function renderLog(){
       <span class="when">${showTs(r.ts)}</span>
       <span class="tag ${r.side}">${SIDE[r.side]}</span>
       <span>${esc(r.item)}</span>${qTag(r.q)}
-      <span class="p" style="color:var(--${r.cur})">${fmt(r.price)} ${CUR[r.cur]}</span>
+      <span class="p" style="color:var(--${r.cur})">${fmt(r.price)} ${CUR[r.cur]}${r.trade ? " ×" + qtyOf(r) : ""}</span>
       <button class="x" data-id="${r.id}" title="刪除">✕</button></li>`).join("")
     : `<li class="empty">尚無紀錄</li>`;
 }
@@ -720,7 +792,36 @@ function renderMovers(){
         <td class="${x.pct > 0 ? "hi" : "lo"}"><b style="white-space:nowrap">${x.pct > 0 ? "▲ +" : "▼ "}${x.pct.toFixed(1)}%</b></td></tr>`; }).join("") + "</tbody>";
 }
 
-function renderAll(){ renderView(); renderOverview(); renderLog(); renderMovers(); updatePlaceholder(); }
+// ---------- 我的持有 ----------
+let hPage = 1;
+function renderHoldings(){
+  const keys = new Map();
+  records.filter(r => r.trade).forEach(r => keys.set(r.cat + "|" + r.item + "|" + (r.q || ""), { cat:r.cat, item:r.item, q:r.q || null }));
+  const tot = { gold:0, gem:0 };
+  const rows = [];
+  for(const k of keys.values()){
+    const P = position(k.cat, k.item, k.q);
+    ["gold","gem"].forEach(c => tot[c] += P.real[c]);
+    if(P.qty > 0) rows.push({ ...k, P, est: estimate(k.cat, k.item, k.q, P) });
+  }
+  rows.sort((a,b) => (b.P.last.ts > a.P.last.ts) - (b.P.last.ts < a.P.last.ts));
+  const totL = ["gold","gem"].filter(c => Math.abs(tot[c]) > 0.5).map(c => `${signed(tot[c], c)} ${CUR[c]}`).join("、");
+  $("hSum").innerHTML = keys.size ? `所有物品累計已實現損益（扣手續費）：${totL || "0"}` : "";
+  if(!rows.length){ $("hPager").innerHTML = ""; $("hold").innerHTML = `<tbody><tr><td class="empty">${keys.size ? "目前沒有持有中的物品。" : "還沒有記錄買下或賣出。"}</td></tr></tbody>`; return; }
+  const pages = Math.max(1, Math.ceil(rows.length / PAGE));
+  hPage = Math.min(Math.max(1, hPage), pages);
+  $("hPager").innerHTML = pagerHTML(hPage, pages, rows.length, "項");
+  $("hold").innerHTML = `<thead><tr><th>物品</th><th>數量</th><th>平均成本</th><th>預估損益</th></tr></thead><tbody>` +
+    rows.slice((hPage - 1) * PAGE, hPage * PAGE).map(x => {
+      const e = x.est;
+      const estL = !e ? "—" : e.mixed ? "<span class='when'>成本混合幣別</span>" : e.noMarket ? "<span class='when'>無市價</span>"
+        : `${signed(e.pnl, e.c)}<span class="when">市價 ${money(e.last, e.c)}</span>`;
+      return `<tr class="click" data-cat="${x.cat}" data-i="${esc(x.item)}" data-q="${x.q || ""}"><td>${esc(x.item)} ${qTag(x.q)}<span class="sub">${TAB_NAME[x.cat]}</span></td>
+        <td><b>${x.P.qty}</b></td><td>${avgCostText(x.P)}</td><td>${estL}</td></tr>`;
+    }).join("") + "</tbody>";
+}
+
+function renderAll(){ renderView(); renderHoldings(); renderOverview(); renderLog(); renderMovers(); updatePlaceholder(); }
 
 // ---------- 備份 ----------
 function exportJson(){
@@ -732,7 +833,7 @@ function exportJson(){
 }
 function validRecord(r){
   return r && r.id && ITEMSET[r.cat] && ITEMSET[r.cat].has(r.item) && (r.cat === "chest" ? r.q === null : !!QUAL[r.q])
-    && SIDE[r.side] && (r.side === "market" ? !r.trade : r.trade === true) && CUR[r.cur] && r.price > 0 && /^\d{4}-\d{2}-\d{2}T\d{2}$/.test(r.ts);
+    && SIDE[r.side] && (r.side === "market" ? !r.trade : r.trade === true) && (r.qty == null || (Number.isInteger(r.qty) && r.qty >= 1)) && CUR[r.cur] && r.price > 0 && /^\d{4}-\d{2}-\d{2}T\d{2}$/.test(r.ts);
 }
 function importJson(file){
   const rd = new FileReader();
@@ -765,6 +866,13 @@ document.addEventListener("click", e => { const h = e.target.closest && e.target
 $("lFilter").onchange = () => { logPage = 1; renderLog(); };
 $("pager").addEventListener("click", e => { const b = e.target.closest("button[data-p]"); if(!b || b.disabled) return; logPage = +b.dataset.p; renderLog(); $("log").scrollIntoView({ block:"nearest" }); });
 $("mvTh").onchange = renderMovers;
+$("hPager").addEventListener("click", e => { const b = e.target.closest("button[data-p]"); if(!b || b.disabled) return; hPage = +b.dataset.p; renderHoldings(); });
+$("hold").addEventListener("click", e => {
+  const tr = e.target.closest("tr[data-i]"); if(!tr) return;
+  if(tab !== tr.dataset.cat) setTab(tr.dataset.cat);
+  selectItem(tab, tr.dataset.i, tr.dataset.q || null);
+  $("vTitle").scrollIntoView({ behavior:"smooth", block:"start" });
+});
 $("movers").addEventListener("click", e => {
   const tr = e.target.closest("tr[data-i]"); if(!tr) return;
   selectItem(tab, tr.dataset.i, tr.dataset.q || null);
