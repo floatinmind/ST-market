@@ -92,6 +92,20 @@ svg text{fill:var(--muted);font-size:11px}
 .lg-buy{color:var(--buy);font-style:normal}.lg-sell{color:var(--sell);font-style:normal}
 .stat.trade{border-style:dashed;grid-column:1/-1}
 .gain{color:var(--buy)}.loss{color:var(--sell)}
+.fbar{display:flex;flex-direction:column;gap:6px;margin-bottom:10px}
+.frow{display:flex;align-items:center;gap:6px;overflow-x:auto;scrollbar-width:none;padding-bottom:2px}
+.frow::-webkit-scrollbar{display:none}
+.frow>b{flex:0 0 auto;font-size:12px;color:var(--muted);font-weight:600;min-width:30px}
+.chip{flex:0 0 auto;background:var(--panel2);color:var(--muted);border:1px solid var(--line);border-radius:14px;padding:4px 11px;font-size:12px;cursor:pointer;font-family:inherit;white-space:nowrap}
+.chip.on{background:var(--accent);border-color:var(--accent);color:#2a1e05;font-weight:700}
+.chip.on.q-normal{background:var(--q-normal);border-color:var(--q-normal)}
+.chip.on.q-superior{background:var(--q-superior);border-color:var(--q-superior)}
+.chip.on.q-flawless{background:var(--q-flawless);border-color:var(--q-flawless)}
+.chip.on.q-epic{background:var(--q-epic);border-color:var(--q-epic)}
+.chip.on.q-legendary{background:var(--q-legendary);border-color:var(--q-legendary)}
+.chip.q-normal{color:var(--q-normal)}.chip.q-superior{color:var(--q-superior)}.chip.q-flawless{color:var(--q-flawless)}.chip.q-epic{color:var(--q-epic)}.chip.q-legendary{color:var(--q-legendary)}
+.chip.on[class*="q-"]{color:#1a1510}
+.frow select{width:auto;padding:4px 8px;font-size:12px;border-radius:14px}
 .stat.trade .kv{align-items:baseline}
 .stat.trade .kv>span:last-child{text-align:right}
 .pager{display:flex;justify-content:center;align-items:center;gap:12px;margin-top:10px;font-size:13px;color:var(--muted)}
@@ -199,6 +213,7 @@ svg text{fill:var(--muted);font-size:11px}
 <!-- 我的持有 -->
 <div class="card">
   <h2>我的持有</h2>
+  <div class="fbar" id="hBar"></div>
   <div class="tablewrap"><table id="hold"></table></div>
   <div class="pager" id="hPager"></div>
   <div class="hint" id="hSum"></div>
@@ -211,6 +226,7 @@ svg text{fill:var(--muted);font-size:11px}
   <div class="row" style="flex-wrap:wrap;gap:8px;margin-bottom:10px">
     <div class="seg" id="oCur" style="flex:1;min-width:150px"><button data-v="gold" class="on">Gold</button><button data-v="gem">Gem</button></div>
   </div>
+  <div class="fbar" id="oBar"></div>
   <label class="chk hide" id="oStarWrap" style="margin-bottom:8px"><input type="checkbox" id="oStar"> 只看關注</label>
   <div class="tablewrap"><table id="overview"></table></div>
   <div class="pager" id="oPager"></div>
@@ -430,7 +446,7 @@ function initSelectors(){
   $("fType").innerHTML += types.map(t => `<option>${esc(t)}</option>`).join("");
   const tiers = [...new Set(EQUIP.map(e => e[2]))].sort((a,b) => a-b);
   $("fTier").innerHTML += tiers.map(t => `<option value="${t}">T${t}</option>`).join("");
-  $("fTier").onchange = () => { ovPage = 1; renderOverview(); if(document.activeElement === $("pk")) openPicker(); };
+  $("fTier").onchange = () => { if(document.activeElement === $("pk")) openPicker(); };
   // 換裝備類型時清空名稱，直接列出該類型讓你挑
   $("fType").onchange = () => {
     sel.equip.item = null; $("pk").value = "";
@@ -701,19 +717,33 @@ function renderOverview(){
     records.filter(r => r.cat === tab).forEach(r => seen.set(r.item + "|" + r.q, { item:r.item, q:r.q }));
     rows = [...seen.values()];
     (stars[tab] || []).forEach(item => { if(!rows.some(x => x.item === item)) rows.push({ item, q:null, placeholder:true }); });
-    if(tab === "equip"){
-      const type = $("fType").value, tier = $("fTier").value;
-      rows = rows.filter(x => { const i = INFO[x.item] || {}; return (!type || i.type === type) && (!tier || i.tier == tier); });
-    }
     if($("oStar").checked) rows = rows.filter(x => isStar(tab, x.item));
-    $("oHint").textContent = "只列出記錄過或加了關注（★）的項目" + (tab === "equip" ? "，並套用上方的類型／階級篩選" : "") + "。點一列可切換過去。";
+    $("oHint").textContent = "只列出記錄過或加了關注（★）的項目。點一列可切換過去。";
   }
-  const data = rows.map(x => ({ ...x, s: x.placeholder ? null : summarize(subset(tab, x.item, x.q, "market", c)) }));
-  if(tab !== "chest"){
-    const lastAny = x => records.filter(r => r.cat === tab && r.item === x.item && (r.q || null) === (x.q || null)).reduce((m,r) => r.ts > m ? r.ts : m, "");
-    data.forEach(x => x.lt = lastAny(x));
-    data.sort((a,b) => (isStar(tab,b.item) - isStar(tab,a.item)) || (a.lt < b.lt ? 1 : a.lt > b.lt ? -1 : 0));
-  }
+  let data = rows.map(x => ({ ...x, s: x.placeholder ? null : summarize(subset(tab, x.item, x.q, "market", c)) }));
+  const lastAny = x => records.filter(r => r.cat === tab && r.item === x.item && (r.q || null) === (x.q || null)).reduce((m,r) => r.ts > m ? r.ts : m, "");
+  data.forEach(x => x.lt = lastAny(x));
+  const chest = tab === "chest";
+  const sorts = chest ? [["default","預設"],["price","最新市價"],["recent","最近記錄"],["name","名稱"]]
+                      : [["recent","最近記錄"],["tier","階級"],["quality","品質"],["price","最新市價"],["name","名稱"]];
+  // 寶箱沒有品質／階級／類型；目前的排序不適用這個分頁時，用第一個
+  const st = { ...oF };
+  if(!sorts.some(x => x[0] === st.sort)){ st.sort = sorts[0][0]; st.dir = -1; }
+  if(chest){ st.q = ""; st.tier = ""; }
+  if(tab !== "equip") st.type = "";
+  renderBar("oBar", st, {
+    quality: !chest, tiers: chest ? [] : tiersIn(data),
+    types: tab === "equip" ? [...$("fType").options].map(o => o.value).filter(Boolean).filter(t => data.some(x => (INFO[x.item] || {}).type === t)) : null,
+    sorts
+  });
+  const allN = data.length;
+  data = applyBar(data, st, {
+    default: x => -CHESTS.indexOf(x.item),
+    recent: x => (isStar(tab, x.item) ? "1" : "0") + (x.lt || ""),   // 關注的排前面，再依最近記錄
+    tier: tierOf, quality: x => QRANK[x.q] || 0,
+    price: x => x.s ? x.s.last.price : null, name: x => x.item.toLowerCase()
+  });
+  if(!data.length && allN){ $("oPager").innerHTML = ""; $("overview").innerHTML = `<tbody><tr><td class="empty">沒有符合篩選條件的項目。</td></tr></tbody>`; return; }
   if(!data.length){ $("oPager").innerHTML = ""; $("overview").innerHTML = `<tbody><tr><td class="empty">還沒有紀錄。</td></tr></tbody>`; return; }
   // 每頁 20 項
   const pages = Math.max(1, Math.ceil(data.length / PAGE));
@@ -792,22 +822,73 @@ function renderMovers(){
         <td class="${x.pct > 0 ? "hi" : "lo"}"><b style="white-space:nowrap">${x.pct > 0 ? "▲ +" : "▼ "}${x.pct.toFixed(1)}%</b></td></tr>`; }).join("") + "</tbody>";
 }
 
+// ---------- 篩選／排序列（我的持有、總覽共用） ----------
+const QRANK = { normal:1, superior:2, flawless:3, epic:4, legendary:5 };
+const VIEW_KEY = "chestMarket.view";
+const savedView = readJSON(VIEW_KEY, {}) || {};
+const hF = Object.assign({ cat:"", q:"", tier:"", sort:"recent", dir:-1 }, savedView.h);
+const oF = Object.assign({ q:"", tier:"", type:"", sort:"recent", dir:-1 }, savedView.o);
+const saveView = () => writeJSON(VIEW_KEY, { h:hF, o:oF });
+const tierOf = x => (INFO[x.item] || {}).tier || 0;
+// cfg: { cats, quality, tiers, types, sorts:[[key,label]] }
+function renderBar(id, st, cfg){
+  const chip = (k, v, label, cls = "") => `<button class="chip ${cls}${String(st[k]) === String(v) ? " on" : ""}" data-k="${k}" data-v="${v}">${label}</button>`;
+  let h = "";
+  if(cfg.cats) h += `<div class="frow"><b>分頁</b>${chip("cat", "", "全部")}${Object.keys(TAB_NAME).map(c => chip("cat", c, TAB_NAME[c])).join("")}</div>`;
+  if(cfg.quality) h += `<div class="frow"><b>品質</b>${chip("q", "", "全部")}${Object.keys(QUAL).slice().reverse().map(q => chip("q", q, QUAL[q], "q-" + q)).join("")}</div>`;
+  if(cfg.tiers && cfg.tiers.length) h += `<div class="frow"><b>階級</b>${chip("tier", "", "全部")}${cfg.tiers.map(t => chip("tier", t, "T" + t)).join("")}</div>`;
+  if(cfg.types && cfg.types.length) h += `<div class="frow"><b>類型</b><select data-k="type"><option value="">全部類型</option>${cfg.types.map(t => `<option${st.type === t ? " selected" : ""}>${esc(t)}</option>`).join("")}</select></div>`;
+  h += `<div class="frow"><b>排序</b>${cfg.sorts.map(([k, label]) => `<button class="chip${st.sort === k ? " on" : ""}" data-k="sort" data-v="${k}">${label}${st.sort === k && k !== "default" ? (st.dir < 0 ? " ↓" : " ↑") : ""}</button>`).join("")}</div>`;
+  $(id).innerHTML = h;
+}
+function bindBar(id, st, onChange){
+  $(id).addEventListener("click", e => {
+    const b = e.target.closest(".chip"); if(!b) return;
+    const k = b.dataset.k, v = b.dataset.v;
+    if(k === "sort"){
+      // 再點一次同一個排序就反過來
+      if(st.sort === v) st.dir = -st.dir; else { st.sort = v; st.dir = v === "name" ? 1 : -1; }
+    } else st[k] = v;
+    saveView(); onChange();
+  });
+  $(id).addEventListener("change", e => { const sl = e.target.closest("select[data-k]"); if(!sl) return; st[sl.dataset.k] = sl.value; saveView(); onChange(); });
+}
+// 共用的篩選與排序；key 是各排序方式的取值函式
+function applyBar(rows, st, key){
+  rows = rows.filter(x => (!st.q || x.q === st.q) && (!st.tier || tierOf(x) == st.tier) && (!st.cat || x.cat === st.cat)
+    && (!st.type || (INFO[x.item] || {}).type === st.type));
+  const k = key[st.sort] || key.recent;
+  const cmp = (a, b) => { const A = k(a), B = k(b); return A == null && B == null ? 0 : A == null ? 1 : B == null ? -1 : A < B ? -1 : A > B ? 1 : 0; };
+  return rows.sort((a, b) => {
+    const c = cmp(a, b);
+    if(c) return (k(a) == null || k(b) == null) ? c : c * st.dir;   // 沒有值的永遠排最後
+    return (tierOf(b) - tierOf(a)) || ((QRANK[b.q] || 0) - (QRANK[a.q] || 0)) || a.item.localeCompare(b.item);
+  });
+}
+const tiersIn = rows => [...new Set(rows.map(tierOf).filter(Boolean))].sort((a, b) => b - a);
+
 // ---------- 我的持有 ----------
 let hPage = 1;
 function renderHoldings(){
   const keys = new Map();
   records.filter(r => r.trade).forEach(r => keys.set(r.cat + "|" + r.item + "|" + (r.q || ""), { cat:r.cat, item:r.item, q:r.q || null }));
   const tot = { gold:0, gem:0 };
-  const rows = [];
+  let rows = [];
   for(const k of keys.values()){
     const P = position(k.cat, k.item, k.q);
     ["gold","gem"].forEach(c => tot[c] += P.real[c]);
     if(P.qty > 0) rows.push({ ...k, P, est: estimate(k.cat, k.item, k.q, P) });
   }
-  rows.sort((a,b) => (b.P.last.ts > a.P.last.ts) - (b.P.last.ts < a.P.last.ts));
+  renderBar("hBar", hF, { cats:true, quality:true, tiers:tiersIn(rows),
+    sorts:[["recent","最近交易"],["tier","階級"],["quality","品質"],["qty","數量"],["pnl","預估損益"],["name","名稱"]] });
+  const allN = rows.length;
+  rows = applyBar(rows, hF, {
+    recent: x => x.P.last.ts, tier: tierOf, quality: x => QRANK[x.q] || 0, qty: x => x.P.qty,
+    pnl: x => x.est && x.est.pnl != null ? x.est.pnl : null, name: x => x.item.toLowerCase()
+  });
   const totL = ["gold","gem"].filter(c => Math.abs(tot[c]) > 0.5).map(c => `${signed(tot[c], c)} ${CUR[c]}`).join("、");
   $("hSum").innerHTML = keys.size ? `所有物品累計已實現損益（扣手續費）：${totL || "0"}` : "";
-  if(!rows.length){ $("hPager").innerHTML = ""; $("hold").innerHTML = `<tbody><tr><td class="empty">${keys.size ? "目前沒有持有中的物品。" : "還沒有記錄買下或賣出。"}</td></tr></tbody>`; return; }
+  if(!rows.length){ $("hPager").innerHTML = ""; $("hold").innerHTML = `<tbody><tr><td class="empty">${allN ? "沒有符合篩選條件的物品。" : keys.size ? "目前沒有持有中的物品。" : "還沒有記錄買下或賣出。"}</td></tr></tbody>`; return; }
   const pages = Math.max(1, Math.ceil(rows.length / PAGE));
   hPage = Math.min(Math.max(1, hPage), pages);
   $("hPager").innerHTML = pagerHTML(hPage, pages, rows.length, "項");
@@ -816,7 +897,7 @@ function renderHoldings(){
       const e = x.est;
       const estL = !e ? "—" : e.mixed ? "<span class='when'>成本混合幣別</span>" : e.noMarket ? "<span class='when'>無市價</span>"
         : `${signed(e.pnl, e.c)}<span class="when">市價 ${money(e.last, e.c)}</span>`;
-      return `<tr class="click" data-cat="${x.cat}" data-i="${esc(x.item)}" data-q="${x.q || ""}"><td>${esc(x.item)} ${qTag(x.q)}<span class="sub">${TAB_NAME[x.cat]}</span></td>
+      return `<tr class="click" data-cat="${x.cat}" data-i="${esc(x.item)}" data-q="${x.q || ""}"><td>${esc(x.item)} ${qTag(x.q)}<span class="sub">${TAB_NAME[x.cat]}${INFO[x.item] ? ` · ${esc(INFO[x.item].type)} · T${INFO[x.item].tier}` : ""}</span></td>
         <td><b>${x.P.qty}</b></td><td>${avgCostText(x.P)}</td><td>${estL}</td></tr>`;
     }).join("") + "</tbody>";
 }
@@ -861,6 +942,8 @@ initForm();
 bindSeg("cCur", renderChart);
 bindSeg("oCur", renderOverview);
 $("oStar").onchange = () => { ovPage = 1; renderOverview(); };
+bindBar("oBar", oF, () => { ovPage = 1; renderOverview(); });
+bindBar("hBar", hF, () => { hPage = 1; renderHoldings(); });
 $("oPager").addEventListener("click", e => { const b = e.target.closest("button[data-p]"); if(!b || b.disabled) return; ovPage = +b.dataset.p; renderOverview(); $("oTitle").scrollIntoView({ block:"nearest" }); });
 document.addEventListener("click", e => { const h = e.target.closest && e.target.closest("#chart .hit"); if(h) selectPoint(+h.dataset.i); });
 $("lFilter").onchange = () => { logPage = 1; renderLog(); };
