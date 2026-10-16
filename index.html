@@ -91,6 +91,11 @@ svg text{fill:var(--muted);font-size:11px}
 .lg-line{display:inline-block;width:14px;height:2px;background:var(--muted)}
 .lg-buy{color:var(--buy);font-style:normal}.lg-sell{color:var(--sell);font-style:normal}
 .stat.trade{border-style:dashed;grid-column:1/-1}
+.stat.trade>.btn{margin-top:8px}
+.adjf{margin-top:10px;padding-top:10px;border-top:1px dashed var(--line)}
+.adjf .row{flex-wrap:wrap}.adjf .f{min-width:110px}
+.adjf .when{display:block;color:var(--muted);font-size:12px;line-height:1.5}
+.tag.adj{background:var(--q-epic);color:#1a1510}
 .gain{color:var(--buy)}.loss{color:var(--sell)}
 .fbar{display:flex;flex-direction:column;gap:6px;margin-bottom:10px}
 .frow{display:flex;align-items:center;gap:6px;overflow-x:auto;scrollbar-width:none;padding-bottom:2px}
@@ -282,7 +287,7 @@ const TAB_NAME = { chest:"寶箱", ench:"元素・靈魂", equip:"裝備" };
 
 const KEY = "chestMarket.v1", STAR_KEY = "chestMarket.stars", PREF_KEY = "chestMarket.prefs";
 // side：market = 市場價格；buy / sell = 自己實際買下／賣出（另帶 trade:true）
-const SIDE = { market:"市價", buy:"我買下", sell:"我賣出" };
+const SIDE = { market:"市價", buy:"我買下", sell:"我賣出", adj:"調整" };
 const CUR = { gold:"Gold", gem:"Gem" };
 const QUAL = { normal:"Normal", superior:"Superior", flawless:"Flawless", epic:"Epic", legendary:"Legendary" };
 
@@ -295,7 +300,7 @@ function normalize(r){
   if(!r.cat && r.chest){ r = { ...r, cat:"chest", item:r.chest }; delete r.chest; }
   if(r.cat === "chest") r.q = null;
   // 舊版的「買入／賣出」其實都是當時市場價格，合併成市價
-  if(r.trade && (r.side === "buy" || r.side === "sell")) return r;
+  if(r.trade && (r.side === "buy" || r.side === "sell" || r.side === "adj")) return r;
   if(r.side !== "market"){ r = { ...r, side:"market" }; delete r.trade; }
   return r;
 }
@@ -360,7 +365,7 @@ function marketAt(list, ts){ let m = null; for(const r of list) if(r.ts <= ts &&
 // 賣出手續費
 const FEE = { gold:0.1, gem:0.2 };
 const netOf = (price, c) => Math.floor(price * (1 - FEE[c]));   // 每件實收（無條件捨去）
-const qtyOf = r => r.qty > 0 ? r.qty : 1;                        // 舊紀錄沒有數量，當作 1
+const qtyOf = r => r.side === "adj" ? r.qty : r.qty > 0 ? r.qty : 1;   // 舊紀錄沒有數量，當作 1；調整可正可負
 const money = (n, c) => c === "gold" && Math.abs(n) >= 1e4 ? (n < 0 ? "-" : "") + compact(Math.abs(Math.round(n))) : fmt(Math.round(n));
 const signed = (n, c) => `<b class="${n > 0 ? "gain" : n < 0 ? "loss" : ""}">${n > 0 ? "+" : ""}${money(n, c)}</b>`;
 // 某物品（＋品質）的持有與損益：平均成本法，成本可能混合 Gold／Gem
@@ -371,6 +376,16 @@ function position(cat, item, q){
   const P = { qty:0, cost:z(), real:z(), bq:z(), bt:z(), sq:z(), sg:z(), sn:z(), uncovered:0, n:list.length, last:list[list.length - 1] };
   for(const r of list){
     const n = qtyOf(r), c = r.cur;
+    if(r.side === "adj"){
+      // 手動調整：增加的照填的每件成本計入；減少的（之前賣掉、用掉）依比例扣成本，不算損益
+      if(r.qty > 0){ P.qty += r.qty; P.cost[c] += r.price * r.qty; }
+      else {
+        const rm = Math.min(-r.qty, P.qty);
+        if(rm > 0){ const frac = rm / P.qty; for(const cc of ["gold","gem"]) P.cost[cc] -= P.cost[cc] * frac; P.qty -= rm; }
+      }
+      P.adj = (P.adj || 0) + r.qty;
+      continue;
+    }
     if(r.side === "buy"){ P.qty += n; P.cost[c] += r.price * n; P.bq[c] += n; P.bt[c] += r.price * n; continue; }
     const net = netOf(r.price, c) * n;
     P.sq[c] += n; P.sg[c] += r.price * n; P.sn[c] += net;
@@ -423,7 +438,7 @@ function setTab(t){
   $("qWrap").classList.toggle("hide", t === "chest");
   $("oStarWrap").classList.toggle("hide", t === "chest");
   if(t !== "chest") setSeg("fQ", cur().q);
-  logPage = 1; ovPage = 1;
+  logPage = 1; ovPage = 1; adjOpen = false;
   writeJSON(PREF_KEY, { tab: t });
   syncItemUI(); renderAll();
 }
@@ -476,6 +491,7 @@ function toggleStar(t){
   saveStars(); syncItemUI(); renderOverview();
 }
 function selectItem(t, item, q){
+  adjOpen = false;
   sel[t].item = item;
   if(q && t !== "chest"){ sel[t].q = q; setSeg("fQ", q); }
   syncItemUI(); renderAll();
@@ -596,6 +612,35 @@ function addRecord(kind){
   renderAll();
 }
 
+// ---------- 手動調整持有 ----------
+let adjOpen = false;
+function saveAdjust(){
+  const s = cur(), q = tab === "chest" ? null : s.q;
+  const P = position(tab, s.item, q), held = P ? P.qty : 0;
+  const target = Number($("adjQty").value);
+  if(!(Number.isInteger(target) && target >= 0)){ flash("持有數量請輸入 0 以上的整數。", true); return; }
+  const delta = target - held;
+  if(!delta){ adjOpen = false; renderView(); flash("持有數量沒有變。"); return; }
+  let c = $("adjCur").value, price = 0;
+  if(delta > 0){
+    const raw = $("adjCost").value.trim();
+    if(raw){
+      price = parsePrice(raw, 1);
+      if(!(price > 0)){ flash("每件成本格式不對，例如 45 或 1.2m。", true); return; }
+    } else {
+      // 沒填成本：沿用目前的平均成本（只有單一幣別時）
+      const cs = P && held > 0 ? ["gold","gem"].filter(x => P.cost[x] > 0.5) : [];
+      if(cs.length !== 1){ flash("目前沒有可沿用的平均成本，請填每件成本。", true); $("adjCost").focus(); return; }
+      c = cs[0]; price = Math.round(P.cost[c] / held);
+    }
+  }
+  records.push({ id: Date.now() + Math.random().toString(36).slice(2,6) + "a", ts: nowTs(), cat: tab, item: s.item, q,
+    side: "adj", trade: true, qty: delta, cur: c, price });
+  save(); adjOpen = false;
+  flash(`已調整：${s.item}${q ? " " + QUAL[q] : ""} 持有 ${held} → ${target} 件` + (delta > 0 ? `（每件成本 ${fmt(price)} ${CUR[c]}）` : "（不計損益）"));
+  renderAll();
+}
+
 // ---------- 行情 ----------
 function renderView(){
   const s = cur();
@@ -619,21 +664,37 @@ function renderView(){
       <div class="kv"><span>筆數</span><b>${st.n}</b></div></div>`;
   });
   const P = position(tab, s.item, s.q);
+  const held = P ? P.qty : 0;
+  // 手動調整持有的小表單
+  const adjForm = adjOpen ? `<div class="adjf">
+      <div class="row"><label class="f">持有數量改成<input id="adjQty" type="number" inputmode="numeric" min="0" step="1" value="${held}"></label>
+      <label class="f">每件成本（增加時）<input id="adjCost" placeholder="${P && held > 0 ? "空白＝平均成本" : "例：45 或 1.2m"}"></label>
+      <label class="f" style="flex:0 0 84px">幣別<select id="adjCur"><option value="gem">Gem</option><option value="gold"${(P && P.cost.gold > 0.5 && !(P.cost.gem > 0.5)) || (!P && segValue("fCur") === "gold") ? " selected" : ""}>Gold</option></select></label></div>
+      <div class="row" style="margin-top:6px"><button class="btn small" data-act="adj-save" style="flex:0 0 auto">儲存</button><button class="btn ghost small" data-act="adj-cancel" style="flex:0 0 auto">取消</button></div>
+      <div class="when" style="margin-top:4px">減少：之前賣掉或用掉的，只扣持有和成本，不算損益。增加：例如之前買了不只一件，請填每件成本；Gold 可以打 1.2m 這種寫法。</div>
+    </div>` : `<button class="btn ghost small" data-act="adj-open">調整持有</button>`;
   let trade = "";
-  if(P){
+  if(!P){
+    trade = `<div class="stat trade"><div class="t">我的交易</div><div class="kv"><span class="empty">還沒有買賣紀錄，目前持有 0 件。</span></div>${adjForm}</div>`;
+  } else {
     const cs = ["gold","gem"];
     const buyL = cs.filter(c => P.bq[c]).map(c => `<div class="kv"><span><span class="tag buy">我買下</span> ${P.bq[c]} 件 <span class="tag ${c}">${CUR[c]}</span></span><span>平均 <b>${money(P.bt[c] / P.bq[c], c)}</b></span></div>`).join("");
     const sellL = cs.filter(c => P.sq[c]).map(c => `<div class="kv"><span><span class="tag sell">我賣出</span> ${P.sq[c]} 件 <span class="tag ${c}">${CUR[c]}</span></span><span>平均 <b>${money(P.sg[c] / P.sq[c], c)}</b>，扣 ${FEE[c] * 100}% 實收 <b>${money(P.sn[c] / P.sq[c], c)}</b></span></div>`).join("");
     const realL = cs.filter(c => Math.abs(P.real[c]) > 0.5).map(c => `${signed(P.real[c], c)} ${CUR[c]}`).join("、");
     const est = estimate(tab, s.item, s.q, P);
     const estL = !est ? "" : est.mixed ? "成本混合 Gold／Gem，無法估算" : est.noMarket ? `還沒有 ${CUR[est.c]} 市價` : `${signed(est.pnl, est.c)} ${CUR[est.c]}（最新市價 ${money(est.last, est.c)}）`;
+    const last = P.last.side === "adj"
+      ? `<span class="tag adj">調整</span> <b>${P.last.qty > 0 ? "+" : ""}${P.last.qty} 件</b>`
+      : `<span class="tag ${P.last.side}">${SIDE[P.last.side]}</span> <b>${fmt(P.last.price)} ${CUR[P.last.cur]} ×${qtyOf(P.last)}</b>`;
     trade = `<div class="stat trade"><div class="t">我的交易</div>
       <div class="kv"><span>目前持有</span><span><b>${P.qty}</b> 件${P.qty > 0 ? `，平均成本 <b>${avgCostText(P)}</b>` : ""}</span></div>
       ${buyL}${sellL}
+      ${P.adj ? `<div class="kv"><span><span class="tag adj">調整</span> 合計</span><span><b>${P.adj > 0 ? "+" : ""}${P.adj}</b> 件</span></div>` : ""}
       <div class="kv"><span>已實現損益（扣手續費）</span><span>${realL || "0"}</span></div>
       ${P.qty > 0 ? `<div class="kv"><span>現在賣出的預估損益</span><span>${estL}</span></div>` : ""}
-      ${P.uncovered ? `<div class="kv"><span class="when">有 ${P.uncovered} 件賣出時超過記錄的持有量，成本不明，未計入損益。</span></div>` : ""}
-      <div class="kv"><span>最近</span><span><span class="tag ${P.last.side}">${SIDE[P.last.side]}</span> <b>${fmt(P.last.price)} ${CUR[P.last.cur]} ×${qtyOf(P.last)}</b> <span class="when">${showTs(P.last.ts)}</span></span></div></div>`;
+      ${P.uncovered ? `<div class="kv"><span class="when">有 ${P.uncovered} 件賣出時超過記錄的持有量，成本不明，未計入損益。可以用「調整持有」補上原本就有的數量。</span></div>` : ""}
+      <div class="kv"><span>最近</span><span>${last} <span class="when">${showTs(P.last.ts)}</span></span></div>
+      ${adjForm}</div>`;
   }
   $("stats").innerHTML = boxes.join("") + trade;
   renderChart();
@@ -644,7 +705,7 @@ function restoreViewBody(){ $("vBody").innerHTML = viewBodyHTML; bindSeg("cCur",
 function renderChart(){
   const s = cur(); if(!s.item || !$("chart")) return;
   const c = segValue("cCur");
-  const all = records.filter(r => r.cat === tab && r.item === s.item && (r.q || null) === (s.q || null) && r.cur === c).sort(byTsAsc);
+  const all = records.filter(r => r.side !== "adj" && r.cat === tab && r.item === s.item && (r.q || null) === (s.q || null) && r.cur === c).sort(byTsAsc);
   const mkt = all.filter(r => r.side === "market");
   const box = $("chart");
   if(all.length < 2){ box.innerHTML = `<div class="empty">${all.length ? "再多一筆紀錄就能畫出價格走勢。" : "這個幣別還沒有紀錄。"}</div>`; return; }
@@ -782,7 +843,7 @@ function renderLog(){
       <span class="when">${showTs(r.ts)}</span>
       <span class="tag ${r.side}">${SIDE[r.side]}</span>
       <span>${esc(r.item)}</span>${qTag(r.q)}
-      <span class="p" style="color:var(--${r.cur})">${fmt(r.price)} ${CUR[r.cur]}${r.trade ? " ×" + qtyOf(r) : ""}</span>
+      <span class="p" style="color:var(--${r.side === "adj" ? "text" : r.cur})">${r.side === "adj" ? `持有 ${r.qty > 0 ? "+" : ""}${r.qty} 件${r.qty > 0 ? `（成本 ${fmt(r.price)} ${CUR[r.cur]}）` : ""}` : `${fmt(r.price)} ${CUR[r.cur]}${r.trade ? " ×" + qtyOf(r) : ""}`}</span>
       <button class="x" data-id="${r.id}" title="刪除">✕</button></li>`).join("")
     : `<li class="empty">尚無紀錄</li>`;
 }
@@ -848,7 +909,10 @@ function bindBar(id, st, onChange){
     if(k === "sort"){
       // 再點一次同一個排序就反過來
       if(st.sort === v) st.dir = -st.dir; else { st.sort = v; st.dir = v === "name" ? 1 : -1; }
-    } else st[k] = v;
+    } else {
+      st[k] = v;
+      if(k === "cat" && v === "chest"){ st.tier = ""; st.q = ""; }   // 寶箱沒有階級和品質
+    }
     saveView(); onChange();
   });
   $(id).addEventListener("change", e => { const sl = e.target.closest("select[data-k]"); if(!sl) return; st[sl.dataset.k] = sl.value; saveView(); onChange(); });
@@ -879,7 +943,11 @@ function renderHoldings(){
     ["gold","gem"].forEach(c => tot[c] += P.real[c]);
     if(P.qty > 0) rows.push({ ...k, P, est: estimate(k.cat, k.item, k.q, P) });
   }
-  renderBar("hBar", hF, { cats:true, quality:true, tiers:tiersIn(rows),
+  // 階級按鈕只列出所選分頁裡有的階級；選到的階級不存在就回到全部
+  const hTiers = tiersIn(rows.filter(x => !hF.cat || x.cat === hF.cat));
+  if(hF.tier && !hTiers.includes(Number(hF.tier))){ hF.tier = ""; saveView(); }
+  const isChest = hF.cat === "chest";
+  renderBar("hBar", hF, { cats:true, quality:!isChest, tiers:isChest ? [] : hTiers,
     sorts:[["recent","最近交易"],["tier","階級"],["quality","品質"],["qty","數量"],["pnl","預估損益"],["name","名稱"]] });
   const allN = rows.length;
   rows = applyBar(rows, hF, {
@@ -914,7 +982,9 @@ function exportJson(){
 }
 function validRecord(r){
   return r && r.id && ITEMSET[r.cat] && ITEMSET[r.cat].has(r.item) && (r.cat === "chest" ? r.q === null : !!QUAL[r.q])
-    && SIDE[r.side] && (r.side === "market" ? !r.trade : r.trade === true) && (r.qty == null || (Number.isInteger(r.qty) && r.qty >= 1)) && CUR[r.cur] && r.price > 0 && /^\d{4}-\d{2}-\d{2}T\d{2}$/.test(r.ts);
+    && SIDE[r.side] && (r.side === "market" ? !r.trade : r.trade === true)
+    && (r.side === "adj" ? Number.isInteger(r.qty) && r.qty !== 0 && r.price >= 0 : (r.qty == null || (Number.isInteger(r.qty) && r.qty >= 1)) && r.price > 0)
+    && CUR[r.cur] && /^\d{4}-\d{2}-\d{2}T\d{2}$/.test(r.ts);
 }
 function importJson(file){
   const rd = new FileReader();
@@ -949,6 +1019,12 @@ document.addEventListener("click", e => { const h = e.target.closest && e.target
 $("lFilter").onchange = () => { logPage = 1; renderLog(); };
 $("pager").addEventListener("click", e => { const b = e.target.closest("button[data-p]"); if(!b || b.disabled) return; logPage = +b.dataset.p; renderLog(); $("log").scrollIntoView({ block:"nearest" }); });
 $("mvTh").onchange = renderMovers;
+$("vBody").addEventListener("click", e => {
+  const b = e.target.closest("[data-act]"); if(!b) return;
+  if(b.dataset.act === "adj-open"){ adjOpen = true; renderView(); $("adjQty") && $("adjQty").focus(); }
+  if(b.dataset.act === "adj-cancel"){ adjOpen = false; renderView(); }
+  if(b.dataset.act === "adj-save") saveAdjust();
+});
 $("hPager").addEventListener("click", e => { const b = e.target.closest("button[data-p]"); if(!b || b.disabled) return; hPage = +b.dataset.p; renderHoldings(); });
 $("hold").addEventListener("click", e => {
   const tr = e.target.closest("tr[data-i]"); if(!tr) return;
